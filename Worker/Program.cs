@@ -6,6 +6,7 @@ using Hangfire.AspNetCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Hangfire.Dashboard.BasicAuthorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,10 +46,40 @@ var app = builder.Build();
 // Routing ve Middleware
 app.UseRouting();
 app.UseAuthorization();
-app.UseHangfireDashboard("/hangfire");
+//app.UseHangfireDashboard("/hangfire");
+
+// Hangfire dashboard ekranýný þifre ile giriþ
+var options = new DashboardOptions
+{
+    Authorization = new[]
+    {
+        new BasicAuthAuthorizationFilter(new BasicAuthAuthorizationFilterOptions
+        {
+            RequireSsl = false, // localhost ortamý için false
+            SslRedirect = false,
+            LoginCaseSensitive = true,
+            Users = new[]
+            {
+                new BasicAuthAuthorizationUser
+                {
+                    Login = "admin",
+                    PasswordClear = "1234" // Ýstediðin kullanýcý adý ve þifre
+                }
+            }
+        })
+    }
+};
+// Hangfire dashboard aktif edilir
+app.UseHangfireDashboard("/hangfire", options);
 
 app.MapControllers();
-app.MapGet("/", () => "Worker API + Hangfire Dashboard aktif!");
+
+//hangfire yönlendiriyor
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/hangfire");
+    return Task.CompletedTask;
+});
 
 // Recurring job'larý Hangfire'a kaydeder
 var recurringJobs = app.Services.GetRequiredService<RecurringJobs>();

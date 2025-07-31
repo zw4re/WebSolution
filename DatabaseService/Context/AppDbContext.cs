@@ -19,7 +19,12 @@ namespace DatabaseService.Context
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Company>().ToTable("companies");
+            modelBuilder.Entity<Company>()
+                .ToTable("companies");
+
+            // Birleşik key tanımı
+            modelBuilder.Entity<TcmbExchangeRate>()
+                .HasKey(e => new { e.Date, e.CurrencyCode, e.Type });
 
             base.OnModelCreating(modelBuilder);
         }

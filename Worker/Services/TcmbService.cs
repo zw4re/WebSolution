@@ -27,11 +27,11 @@ namespace Worker.Services
         {
             Console.WriteLine("TCMB döviz verisi çekiliyor...");
 
-            string series = "TP.DK.USD.S,TP.DK.USD.A,TP.DK.EUR.S,TP.DK.EUR.A,TP.DK.CHF.S,TP.DK.CHF.A,TP.DK.GBP.S,TP.DK.GBP.A,TP.DK.JPY.S,TP.DK.JPY.A";
+            string series = "TP.DK.USD.S-TP.DK.USD.A-TP.DK.EUR.S-TP.DK.EUR.A-TP.DK.CHF.S-TP.DK.CHF.A-TP.DK.GBP.S-TP.DK.GBP.A-TP.DK.JPY.S-TP.DK.JPY.A";
             string startDate = "01-10-2017";
             string endDate = "01-11-2017";
 
-            string url = $"https://evds2.tcmb.gov.tr/service/evds/series?series={series}&startDate={startDate}&endDate={endDate}&type=json";
+            string url = $"https://evds2.tcmb.gov.tr/service/evds/series={series}&startDate={startDate}&endDate={endDate}&type=json";
 
             _httpClient.DefaultRequestHeaders.Clear(); // Header temizlendi
             _httpClient.DefaultRequestHeaders.Add("key", _apiKey); // API Key eklendi

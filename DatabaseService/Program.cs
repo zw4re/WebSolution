@@ -13,12 +13,20 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 // Controller servisini ekleme 
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews(); // View
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+app.UseStaticFiles(); // wwwroot veya css/js için gerekli
+app.UseRouting();
 app.UseAuthorization();
+app.UseHttpsRedirection();
+
+// MVC Route 
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
 app.MapControllers();
 
 app.Run();

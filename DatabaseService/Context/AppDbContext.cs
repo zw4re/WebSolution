@@ -16,7 +16,7 @@ namespace DatabaseService.Context
         }
 
         public DbSet<Company> Companies { get; set; }
-
+        public DbSet<TcmbExchangeRate> TcmbExchangeRates { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Company>()

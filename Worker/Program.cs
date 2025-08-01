@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Hangfire.Dashboard.BasicAuthorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Worker.Filters;
+using DatabaseService.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 

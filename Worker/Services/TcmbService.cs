@@ -27,11 +27,30 @@ namespace Worker.Services
         {
             Console.WriteLine("TCMB döviz verisi çekiliyor...");
 
-            string series = "TP.DK.USD.S-TP.DK.USD.A-TP.DK.EUR.S-TP.DK.EUR.A-TP.DK.CHF.S-TP.DK.CHF.A-TP.DK.GBP.S-TP.DK.GBP.A-TP.DK.JPY.S-TP.DK.JPY.A";
-            string startDate = "01-10-2017";
-            string endDate = "01-11-2017";
+            string series = "TP.DK.USD.S.YTL-TP.DK.USD.A.YTL-TP.DK.EUR.S.YTL-TP.DK.EUR.A.YTL-TP.DK.CHF.S.YTL-TP.DK.CHF.A.YTL-TP.DK.GBP.S.YTL-TP.DK.GBP.A.YTL-TP.DK.JPY.S.YTL-TP.DK.JPY.A.YTL";
+            // Veritabanındaki en son döviz verisi tarihini al
+            var lastDate = await GetLastExchangeRateDateAsync(); // Örn: 2025-08-01
 
-            string url = $"https://evds2.tcmb.gov.tr/service/evds/series={series}&startDate={startDate}&endDate={endDate}&type=json";
+            // O tarihten 1 gün sonrasını startDate olarak belirle
+            var startDate = lastDate.AddDays(1); // Örn: 2025-08-02
+
+            // endDate = Bugünün tarihi
+            var endDate = DateTime.Today; // Örn: 2025-08-03
+
+            // sistem zaten güncelse ve veri çekilecek tarih yoksa, işlemi durdur
+            if (startDate > endDate)
+            {
+                Console.WriteLine("Yeni veri yok, işlem durduruldu.");
+                return;
+            }
+
+            // EVDS API için tarihi string formatına çevir (dd-MM-yyyy)
+            string startDateStr = startDate.ToString("dd-MM-yyyy");
+            string endDateStr = endDate.ToString("dd-MM-yyyy");
+
+            // API URL’sini dinamik tarihlerle oluştur
+            string url = $"https://evds2.tcmb.gov.tr/service/evds/series={series}&startDate={startDateStr}&endDate={endDateStr}&type=json";
+
 
             _httpClient.DefaultRequestHeaders.Clear(); // Header temizlendi
             _httpClient.DefaultRequestHeaders.Add("key", _apiKey); // API Key eklendi
@@ -103,6 +122,11 @@ namespace Worker.Services
             {
                 Console.WriteLine("TCMB servisinde hata oluştu: " + ex.Message);
             }
+        }
+        // veritabanında kayıtlı en son döviz kuru tarihini almak için kullanılır.
+        private async Task<DateTime> GetLastExchangeRateDateAsync()
+        {
+            return new DateTime(2000, 1, 1);
         }
     }
 }

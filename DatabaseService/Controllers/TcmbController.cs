@@ -16,6 +16,24 @@ namespace DatabaseService.Controllers
             _context = context;
         }
 
+        [HttpGet("last-date")]
+        public async Task<IActionResult> GetLastExchangeRateDate()
+        {
+            // veritabanındaki tcmb_exchange_rate tablosundan en son eklenen tarihi bulur
+            var lastDate = await _context.TcmbExchangeRates
+                .OrderByDescending(x => x.Date) // Tarihe göre büyükten küçüğe sırala
+                .Select(x => x.Date)            // Sadece tarih alanını al
+                .FirstOrDefaultAsync();         // En üstteki (yani en güncel) tarihi al
+
+            // veritabanında hiç veri yoksa default değer gelir > 01.01.0001
+            if (lastDate == default)
+                // bu durumda 2015-01-01 string olarak döndürülür başlangıç tarihi olarak
+                return Ok("2000-01-01");
+
+            // veri varsa, en son tarihi "yyyy-MM-dd" formatında string olarak döndür
+            return Ok(lastDate.ToString("yyyy-MM-dd"));
+        }
+
         // GET: Tüm verileri getir
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TcmbExchangeRate>>> GetAll()
@@ -42,21 +60,37 @@ namespace DatabaseService.Controllers
             if (rates == null || !rates.Any())
                 return BadRequest("Veri listesi boş.");
 
-            foreach (var rate in rates)
+            try
             {
-                var existing = await _context.TcmbExchangeRates.FindAsync(rate.Date, rate.CurrencyCode, rate.Type);
-                if (existing == null)
+                foreach (var rate in rates)
                 {
-                    _context.TcmbExchangeRates.Add(rate);
+                    var existing = await _context.TcmbExchangeRates.FindAsync(rate.Date, rate.CurrencyCode, rate.Type);
+                    if (existing == null)
+                    {
+                        _context.TcmbExchangeRates.Add(rate);
+                    }
+                    else
+                    {
+                        existing.Value = rate.Value;
+                    }
                 }
-                else
+
+                await _context.SaveChangesAsync();
+                return Ok("Veriler kaydedildi.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("HATA: " + ex.Message);
+
+                // Daha fazla bilgi görmek için inner exception'ı yazdıralım:
+                if (ex.InnerException != null)
                 {
-                    existing.Value = rate.Value;
+                    Console.WriteLine("INNER: " + ex.InnerException.Message);
                 }
+
+                return StatusCode(500, "Veri kaydedilirken bir hata oluştu: " + ex.Message);
             }
 
-            await _context.SaveChangesAsync();
-            return Ok("Veriler kaydedildi.");
         }
 
         // PUT: Belirli kaydı güncelle

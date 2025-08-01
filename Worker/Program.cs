@@ -7,6 +7,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Hangfire.Dashboard.BasicAuthorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Worker.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,8 +16,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
 // Servis Kayýtlarý
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
+
+// Cookie Authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+    });
 
 // Job ve Service baðýmlýlýklarý
 builder.Services.AddScoped<KapParseService>();
@@ -45,30 +55,16 @@ var app = builder.Build();
 
 // Routing ve Middleware
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
-//app.UseHangfireDashboard("/hangfire");
+
 
 // Hangfire dashboard ekranýný þifre ile giriþ
 var options = new DashboardOptions
 {
-    Authorization = new[]
-    {
-        new BasicAuthAuthorizationFilter(new BasicAuthAuthorizationFilterOptions
-        {
-            RequireSsl = false, // localhost ortamý için false
-            SslRedirect = false,
-            LoginCaseSensitive = true,
-            Users = new[]
-            {
-                new BasicAuthAuthorizationUser
-                {
-                    Login = "admin",
-                    PasswordClear = "1234" // Ýstediðin kullanýcý adý ve þifre
-                }
-            }
-        })
-    }
+    Authorization = new[] { new MyAuthorizationFilter() }
 };
+
 // Hangfire dashboard aktif edilir
 app.UseHangfireDashboard("/hangfire", options);
 
@@ -77,7 +73,7 @@ app.MapControllers();
 //hangfire yönlendiriyor
 app.MapGet("/", context =>
 {
-    context.Response.Redirect("/hangfire");
+    context.Response.Redirect("/login");
     return Task.CompletedTask;
 });
 

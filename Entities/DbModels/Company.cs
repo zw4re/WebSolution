@@ -12,8 +12,9 @@ namespace Entities.DbModels
     public class Company
     {
         [Key]
-        [Column("id")]
-        public int Id { get; set; }
+        [MaxLength(50)]
+        [Column("stock_code")] 
+        public string StockCode { get; set; }
 
         [Column("mkk_member_oid")]
         public string MkkMemberOid { get; set; }
@@ -23,9 +24,6 @@ namespace Entities.DbModels
 
         [Column("related_member_title")]
         public string RelatedMemberTitle { get; set; }
-
-        [Column("stock_code")]
-        public string StockCode { get; set; }
 
         [Column("city_name")]
         public string CityName { get; set; }

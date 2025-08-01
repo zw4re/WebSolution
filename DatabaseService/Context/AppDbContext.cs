@@ -19,8 +19,26 @@ namespace DatabaseService.Context
         public DbSet<TcmbExchangeRate> TcmbExchangeRates { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Company>()
-                .ToTable("companies");
+            // Company tablosu için yapılandırma
+            modelBuilder.Entity<Company>(entity =>
+            {
+                entity.ToTable("companies");
+
+                // Primary key tanımı
+                entity.HasKey(c => c.StockCode);
+
+                // Uyumlu kolon ayarları
+                entity.Property(c => c.StockCode)
+                      .HasMaxLength(50)
+                      .IsRequired();
+
+                entity.Property(c => c.MkkMemberOid).IsRequired();
+                entity.Property(c => c.KapMemberTitle).IsRequired();
+                entity.Property(c => c.RelatedMemberTitle).IsRequired();
+                entity.Property(c => c.CityName).IsRequired();
+                entity.Property(c => c.RelatedMemberOid).IsRequired();
+                entity.Property(c => c.KapMemberType).IsRequired();
+            });
 
             // Birleşik key tanımı
             modelBuilder.Entity<TcmbExchangeRate>()

@@ -25,10 +25,10 @@ namespace DatabaseService.Controllers
             return Ok(companies);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        [HttpGet("{stockCode}")]
+        public async Task<IActionResult> GetById(string stockCode)
         {
-            var company = await _db.Companies.FindAsync(id);
+            var company = await _db.Companies.FindAsync(stockCode);
             if (company == null)
                 return NotFound();
 
@@ -38,15 +38,55 @@ namespace DatabaseService.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Company company)
         {
-            _db.Companies.Add(company);
-            await _db.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = company.Id }, company);
+            try
+            {
+                if (company == null)
+                {
+                    Console.WriteLine("company objesi null geldi.");
+                    return BadRequest("company null");
+                }
+
+                if (string.IsNullOrWhiteSpace(company.StockCode))
+                {
+                    Console.WriteLine("StockCode null veya boş.");
+                    return BadRequest("StockCode boş olamaz");
+                }
+
+                // Burası patlıyorsa sebebini gör
+                var sameRecordExists = await _db.Companies.AnyAsync(c =>
+                    c.StockCode == company.StockCode &&
+                    c.KapMemberTitle == company.KapMemberTitle &&
+                    c.RelatedMemberTitle == company.RelatedMemberTitle &&
+                    c.CityName == company.CityName &&
+                    c.KapMemberType == company.KapMemberType &&
+                    c.MkkMemberOid == company.MkkMemberOid &&
+                    c.RelatedMemberOid == company.RelatedMemberOid
+                );
+
+                if (sameRecordExists)
+                {
+                    Console.WriteLine($"Aynı kayıt zaten var: {company.StockCode}");
+                    return Conflict($"Aynı kayıt zaten mevcut: {company.StockCode}");
+                }
+
+                _db.Companies.Add(company);
+                await _db.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetById), new { stockCode = company.StockCode }, company);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("❗ Controller içi hata: " + ex.Message);
+                return StatusCode(500, "Sunucu hatası: " + ex.Message);
+            }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Company updated)
+
+
+        [HttpPut("{stockCode}")]
+        public async Task<IActionResult> Update(string stockCode, [FromBody] Company updated)
         {
-            var existing = await _db.Companies.FindAsync(id);
+            var existing = await _db.Companies.FindAsync(stockCode);
             if (existing == null)
                 return NotFound();
 
@@ -62,10 +102,10 @@ namespace DatabaseService.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{stockCode}")]
+        public async Task<IActionResult> Delete(string stockCode)
         {
-            var existing = await _db.Companies.FindAsync(id);
+            var existing = await _db.Companies.FindAsync(stockCode);
             if (existing == null)
                 return NotFound();
 

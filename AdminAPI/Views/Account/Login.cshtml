@@ -1,0 +1,71 @@
+﻿@{
+    ViewData["Title"] = "Giriş Yap";
+    Layout = null; // Login sayfası için layout kullanmıyoruz
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Panel</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f1f5f9; /* Açık gri zemin */
+        }
+
+        .bg-gunmetal {
+            background-color: #1E293B !important;
+        }
+
+        .btn-gunmetal {
+            background-color: #1E293B !important;
+            color: white !important;
+        }
+
+            .btn-gunmetal:hover {
+                background-color: #334155 !important;
+            }
+    </style>
+</head>
+<body>
+
+    <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header text-center bg-gunmetal text-white">
+                    <h4>Admin Giriş</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Hata varsa göster -->
+                    @if (ViewBag.Error != null)
+                    {
+                        <div class="alert alert-danger">
+                            @ViewBag.Error
+                        </div>
+                    }
+
+                    <!-- Giriş formu -->
+                    <form method="post" action="/login">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Kullanıcı Adı</label>
+                            <input type="text" class="form-control" id="username" name="username" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Şifre</label>
+                            <input type="password" class="form-control" id="password" name="password" required />
+                        </div>
+                        <button type="submit" class="btn btn-gunmetal w-100">Giriş Yap</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (opsiyonel) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

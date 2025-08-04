@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DatabaseService.Context;
 using Entities.DbModels;
-
 
 namespace DatabaseService.Controllers
 {
@@ -18,6 +16,7 @@ namespace DatabaseService.Controllers
             _db = db;
         }
 
+        // GET: /api/companies
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -25,34 +24,39 @@ namespace DatabaseService.Controllers
             return Ok(companies);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        // GET: /api/companies/{stockCode}
+        [HttpGet("{stockCode}")]
+        public async Task<IActionResult> GetById(string stockCode)
         {
-            var company = await _db.Companies.FindAsync(id);
+            var company = await _db.Companies.FindAsync(stockCode);
             if (company == null)
                 return NotFound();
 
             return Ok(company);
         }
 
+        // POST: /api/companies
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Company company)
         {
             _db.Companies.Add(company);
             await _db.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = company.Id }, company);
+
+            // StockCode birincil anahtar olduğu için onu kullanıyoruz
+            return CreatedAtAction(nameof(GetById), new { stockCode = company.StockCode }, company);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Company updated)
+        // PUT: /api/companies/{stockCode}
+        [HttpPut("{stockCode}")]
+        public async Task<IActionResult> Update(string stockCode, [FromBody] Company updated)
         {
-            var existing = await _db.Companies.FindAsync(id);
+            var existing = await _db.Companies.FindAsync(stockCode);
             if (existing == null)
                 return NotFound();
 
+            // Güncellenebilir alanlar
             existing.KapMemberTitle = updated.KapMemberTitle;
             existing.RelatedMemberTitle = updated.RelatedMemberTitle;
-            existing.StockCode = updated.StockCode;
             existing.CityName = updated.CityName;
             existing.RelatedMemberOid = updated.RelatedMemberOid;
             existing.KapMemberType = updated.KapMemberType;
@@ -62,10 +66,11 @@ namespace DatabaseService.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        // DELETE: /api/companies/{stockCode}
+        [HttpDelete("{stockCode}")]
+        public async Task<IActionResult> Delete(string stockCode)
         {
-            var existing = await _db.Companies.FindAsync(id);
+            var existing = await _db.Companies.FindAsync(stockCode);
             if (existing == null)
                 return NotFound();
 

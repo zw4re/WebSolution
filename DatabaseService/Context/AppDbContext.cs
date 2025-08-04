@@ -18,6 +18,7 @@ namespace DatabaseService.Context
         public DbSet<Company> Companies { get; set; }
         public DbSet<TcmbExchangeRate> TcmbExchangeRates { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<AdminUser> AdminUsers { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Company tablosu için yapılandırma

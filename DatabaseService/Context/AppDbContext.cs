@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Entities.DbModels;
+using DatabaseService.Entities;
 
 namespace DatabaseService.Context
 {
@@ -18,6 +19,7 @@ namespace DatabaseService.Context
         public DbSet<Company> Companies { get; set; }
         public DbSet<TcmbExchangeRate> TcmbExchangeRates { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<AdminApiUser> AdminApiUsers { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Company tablosu için yapılandırma

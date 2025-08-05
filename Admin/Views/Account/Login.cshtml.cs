@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Admin.Pages.Account
+namespace Admin.Views.Account
 {
     public class LoginModel : PageModel
     {
@@ -25,8 +25,8 @@ namespace Admin.Pages.Account
 
             var loginRequest = new
             {
-                Username = this.Username,
-                Password = this.Password
+                Username,
+                Password
             };
 
             var content = new StringContent(JsonSerializer.Serialize(loginRequest), Encoding.UTF8, "application/json");

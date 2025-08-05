@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using DatabaseService.Context;
-using Presentation;
+using Entities.Presentation;
+
 
 
 namespace DatabaseService.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -16,22 +17,23 @@ namespace DatabaseService.Controllers
             _context = context;
         }
 
-        // Admin kullanıcıyı kontrol etmek için POST endpoint
         [HttpPost("validate-admin")]
         public IActionResult ValidateAdmin([FromBody] AdminLoginRequest request)
         {
-            // Veritabanında böyle bir kullanıcı var mı?
+            Console.WriteLine($"GELEN VERİ: username={request.Username}, password={request.Password}");
+
             var admin = _context.AdminUsers
                 .FirstOrDefault(x => x.Username == request.Username && x.Password == request.Password);
 
             if (admin == null)
             {
-                // Kullanıcı yoksa 401 hatası dön
+                Console.WriteLine("KULLANICI BULUNAMADI!");
                 return Unauthorized("Geçersiz kullanıcı adı veya şifre");
             }
 
-            // Varsa true dön (kabul edildi)
+            Console.WriteLine("KULLANICI DOĞRULANDI");
             return Ok(true);
         }
+
     }
 }

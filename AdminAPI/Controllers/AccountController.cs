@@ -1,82 +1,90 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Entities.DbModels;
-using DatabaseService.Context; 
-using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http.Json; // BU ÖNEMLİ!
+using System;
 
-public class AccountController : Controller
+namespace AdminAPI.Controllers // doğru namespace kullan!
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
-
-    // Constructor: HttpClient ve appsettings'e erişim için gerekli nesneleri alıyoruz
-    public AccountController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public class AccountController : Controller
     {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
-    }
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
 
-    // GET: /login → Login sayfasını açar
-    [HttpGet("/login")]
-    public IActionResult Login()
-    {
-        return View(); // Views/Account/Login.cshtml dosyasını açar
-    }
-
-    // POST: /login → Formdan gelen kullanıcı bilgilerini kontrol eder
-    [HttpPost("/login")]
-    public async Task<IActionResult> Login(string username, string password)
-    {
-        // Giriş bilgilerini taşıyacak veri modeli (JSON olarak yollanacak)
-        var loginRequest = new
+        public AccountController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
-            Username = username,
-            Password = password
-        };
-
-        // appsettings.json içindeki DatabaseService adresini alıyoruz
-        var databaseServiceUrl = _configuration["URL:DatabaseService"];
-
-        // İstek atmak için HttpClient oluştur
-        var client = _httpClientFactory.CreateClient();
-
-        // JSON içeriği hazırlıyoruz
-        var content = JsonContent.Create(loginRequest);
-
-        // /api/auth/validate-admin endpoint'ine POST isteği gönder
-        var response = await client.PostAsync($"{databaseServiceUrl}/api/auth/validate-admin", content);
-
-        // Kullanıcı doğrulaması başarısızsa
-        if (!response.IsSuccessStatusCode)
-        {
-            ViewBag.Error = "Kullanıcı adı veya şifre hatalı";
-            return View();
+            _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
         }
 
-        // Eğer giriş başarılıysa → Cookie oluştur
-        var claims = new List<Claim>
+        // GET: /login → Login sayfasını açar
+        [HttpGet("/login")]
+        public IActionResult Login()
         {
-            new Claim(ClaimTypes.Name, username)
-        };
+            return View(); // Views/Account/Login.cshtml
+        }
 
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
+        // POST: /login → Formdan gelen kullanıcı bilgilerini kontrol eder
+        [HttpPost("/login")]
+        public async Task<IActionResult> Login(string username, string password)
+        {
+            // Giriş bilgilerini taşıyan anonim model
+            var loginRequest = new
+            {
+                Username = username,
+                Password = password
+            };
 
-        // Kullanıcıyı sisteme giriş yapmış olarak işaretle
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+            // appsettings.json'dan gelen database API adresi
+            var databaseServiceUrl = _configuration["URL:DatabaseService"];
 
-        // Başarılı giriş sonrası admin dashboard'a yönlendir
-        return RedirectToAction("Index", "AdminDashboard");
-    }
+            if (string.IsNullOrWhiteSpace(databaseServiceUrl))
+            {
+                ViewBag.Error = "Sunucu yapılandırması eksik.";
+                return View();
+            }
 
-    // GET: /logout → Kullanıcı çıkış yaparsa oturumu kapat
-    [HttpGet("/logout")]
-    public async Task<IActionResult> Logout()
-    {
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return Redirect("/login");
+            var client = _httpClientFactory.CreateClient();
+
+            try
+            {
+                var response = await client.PostAsJsonAsync($"{databaseServiceUrl}/api/auth/validate-admin", loginRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    ViewBag.Error = "Kullanıcı adı veya şifre hatalı";
+                    return View();
+                }
+
+                // Cookie Authentication oluştur
+                var claims = new List<Claim> { new Claim(ClaimTypes.Name, username) };
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var principal = new ClaimsPrincipal(identity);
+
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+                // Başarılı giriş sonrası yönlendirme
+                return RedirectToAction("Dashboard", "Home");
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Error = "Sunucuya bağlanılamadı. Lütfen daha sonra tekrar deneyin.";
+                Console.WriteLine($"Login error: {ex.Message}");
+                return View();
+            }
+        }
+
+        // GET: /logout → Çıkış işlemi
+        [HttpGet("/logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Redirect("/login");
+        }
     }
 }
-

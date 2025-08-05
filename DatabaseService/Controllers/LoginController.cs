@@ -36,8 +36,9 @@ namespace DatabaseService.Controllers
             }
 
             // Veritabanından kullanıcı adı ve şifre (düz metin) eşleşen kullanıcıyı arıyoruz
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == request.Password);
+            var user = await _context.AdminUsers
+            .FirstOrDefaultAsync(u => u.Username == request.Username && u.Password == request.Password);
+
 
             if (user != null)
             {

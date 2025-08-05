@@ -1,0 +1,82 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+    var rates = ViewData["Rates"] as List<Entities.DbModels.TcmbExchangeRate>;
+}
+
+@if (rates == null || !rates.Any())
+{
+    <div class="container mt-5">
+        <h3 class="text-danger">Döviz kuru verileri alınamadı.</h3>
+    </div>
+    return;
+}
+
+<div class="container mt-5">
+    <!-- Başlık -->
+    <div class="mb-4">
+        <h2>Son Çekilen Döviz Kuru: <strong>@ViewData["LatestDate"]</strong></h2>
+    </div>
+
+    <!-- Döviz kuru tablosu -->
+    <div class="card mb-5">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Döviz Kurları</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Döviz Türü</th>
+                        <th>Tip</th>
+                        <th>Değer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rate in rates)
+                    {
+                        <tr>
+                            <td>@rate.CurrencyCode</td>
+                            <td>@rate.Type</td>
+                            <td>@rate.Value</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Job Kontrolleri ve KAP Verileri -->
+    <div class="row">
+        <!-- TCMB Job -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">TCMB Job</h5>
+                    <p><strong>Son Çalışma:</strong> @ViewData["TcmbJobLastRun"]</p>
+                    <p><strong>Job Adı:</strong> @ViewData["TcmbJobName"]</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KAP Job -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">KAP Job</h5>
+                    <p><strong>Son Çalışma:</strong> @ViewData["KapJobLastRun"]</p>
+                    <p><strong>Job Adı:</strong> @ViewData["KapJobName"]</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KAP Şirket Sayısı -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title">KAP Verileri</h5>
+                    <p><strong>Şirket Sayısı:</strong> @ViewData["CompanyCount"]</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

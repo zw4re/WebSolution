@@ -1,4 +1,4 @@
-﻿namespace Presentation
+﻿namespace Entities.Presentation
 {
     // kullanıcı adı ve şifre modelimiz
     public class AdminLoginRequest

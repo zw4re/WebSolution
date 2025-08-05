@@ -113,5 +113,11 @@ namespace DatabaseService.Controllers
             await _db.SaveChangesAsync();
             return NoContent();
         }
+
+        [HttpGet("count")]
+        public async Task<IActionResult> GetCompanyCount()
+        {
+            var count = await _db.Companies.CountAsync(); return Ok(count);
+        }
     }
 }

@@ -7,7 +7,7 @@
         "Action": "Start"
       },
       {
-        "Path": "Worker\\Worker.csproj",
+        "Path": "AdminAPI\\AdminAPI.csproj",
         "Action": "Start"
       }
     ]

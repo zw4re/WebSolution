@@ -7,7 +7,7 @@
         "Action": "Start"
       },
       {
-        "Path": "Worker\\Worker.csproj",
+        "Path": "Admin\\Admin.csproj",
         "Action": "Start"
       }
     ]

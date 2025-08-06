@@ -113,5 +113,13 @@ namespace DatabaseService.Controllers
             await _db.SaveChangesAsync();
             return NoContent();
         }
+
+        //dashboard ekranındaki kap verileri şirket sayısı
+        [HttpGet("count")]
+        public async Task<IActionResult> GetCompanyCount()
+        {
+            var count = await _db.Companies.CountAsync();
+            return Ok(count);
+        }
     }
 }

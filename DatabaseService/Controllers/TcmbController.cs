@@ -122,5 +122,25 @@ namespace DatabaseService.Controllers
             await _context.SaveChangesAsync();
             return Ok("Kayıt silindi.");
         }
+
+        // Dashboard ekranındaki döviz kurları
+        [HttpGet("latest")]
+        public async Task<IActionResult> GetLatestExchangeRates()
+        {
+            // En güncel tarihi bul
+            var latestDate = await _context.TcmbExchangeRates
+                .OrderByDescending(x => x.Date)
+                .Select(x => x.Date)
+                .FirstOrDefaultAsync();
+
+            // O tarihe ait ilk 5 kayıt
+            var latestRates = await _context.TcmbExchangeRates
+                .Where(x => x.Date == latestDate)
+                .OrderBy(x => x.CurrencyCode) // İsteğe bağlı sıralama
+                .ToListAsync();
+
+
+            return Ok(latestRates);
+        }
     }
 }

@@ -94,7 +94,7 @@ namespace Worker.Services
                             rates.Add(new TcmbExchangeRate // Parse edilen veri TcmbExchanceRate nesnesine dönüştürülür
                             {
                                 Date = date,
-                                CurrencyCode = $"{currency}/YTL",
+                                CurrencyCode = $"{currency}/TRY",
                                 Type = type,
                                 Value = value
                             });

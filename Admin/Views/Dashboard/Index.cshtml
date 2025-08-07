@@ -1,6 +1,7 @@
 @model List<Entities.DbModels.TcmbExchangeRate>
 
 @{
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Admin Dashboard";
 }
 
@@ -27,7 +28,7 @@
             </li>
 
             <li class="nav-item mb-2">
-                <a class="nav-link text-white d-flex align-items-center" href="/data">
+                <a href="#jobsSection" class="nav-link text-white d-flex align-items-center">
                     <i class="bi bi-folder-fill me-2"></i> Jobs
                 </a>
             </li>
@@ -45,7 +46,7 @@
     </div>
 
     <!-- Main content -->
-    <div class="p-4 flex-grow-1 bg-light" style="width: 100%;">
+    <div id="main-content" class="p-4 flex-grow-1 bg-light" style="width: 100%;">
         <div class="d-flex justify-content-between mb-4">
             <div class="card text-center shadow-sm p-3" style="width: 18rem;">
                 <h6 class="text-muted">KAP Verileri</h6>
@@ -96,6 +97,42 @@
                     }
                 </tbody>
             </table>
+        </div>
+        <!-- Jobs kısmı -->
+        <div id="jobsSection" class="container mt-4">
+            <h2 class="mb-4">Mevcut İşlerim</h2>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Scheduled Jobs</h5>
+                    <table class="table table-bordered mt-3">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>JOB NAME</th>
+                                <th>CRON SCHEDULE</th>
+                                <th>LAST EXECUTION</th>
+                                <th>NEXT EXECUTION</th>
+                                <th>STATUS</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Daily Data Fetch</td>
+                                <td>0 0 * * *</td>
+                                <td>2025-07-08 00:00:05</td>
+                                <td>2025-07-09 00:00:00</td>
+                                <td><span class="badge bg-success">Success</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                            <!-- Diğer satırlar aynı kalabilir -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

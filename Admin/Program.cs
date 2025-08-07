@@ -28,7 +28,7 @@ namespace Admin
 
             builder.Services.AddHangfireServer();
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+           
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -51,7 +51,7 @@ namespace Admin
             app.UseAuthentication();
             // Kullanıcı yetkilendirme middleware'i
             app.UseAuthorization();
-
+            app.UseHangfireDashboard("/jobs");
             // Varsayılan route: Uygulama açıldığında Account/Login ekranı açılır
             app.UseEndpoints(endpoints =>
             {

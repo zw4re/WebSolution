@@ -29,43 +29,5 @@
             integrity="sha384-qQ2iX+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
             crossorigin="anonymous"></script>
 
-    @* AJAX ile sayfa yenilemeden içerik değiştirme işlemleri için temel JS *@
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const sidebarLinks = document.querySelectorAll(".nav-link");
-
-            sidebarLinks.forEach(link => {
-                link.addEventListener("click", function (e) {
-                    e.preventDefault(); // Sayfanın yenilenmesini engelle
-
-                    const url = this.getAttribute("href"); // Tıklanan linkin href'i (örn: /jobs)
-
-                    fetch(url)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error("İçerik yüklenemedi.");
-                            }
-                            return response.text();
-                        })
-                        .then(html => {
-                            // Gelen HTML içinden sadece <div id="main-content">'i al
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(html, "text/html");
-                            const newContent = doc.querySelector("#main-content");
-
-                            if (newContent) {
-                                document.querySelector("#main-content").innerHTML = newContent.innerHTML;
-                                history.pushState(null, "", url); // URL'yi güncelle (sayfa yenilemeden)
-                            } else {
-                                console.error("main-content bulunamadı.");
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Hata:", error);
-                        });
-                });
-            });
-        });
-    </script>
 </body>
 </html>

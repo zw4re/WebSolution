@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.20" />
     <PackageReference Include="Hangfire.Core" Version="1.8.20" />
-    <PackageReference Include="Hangfire.Redis.StackExchange" Version="1.8.0" />
+    <PackageReference Include="Hangfire.Redis.StackExchange" Version="1.8.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DatabaseService\DatabaseService.csproj" />
     <ProjectReference Include="..\Entities\Entities.csproj" />
+    <ProjectReference Include="..\Worker\Worker.csproj" />
   </ItemGroup>
 
 </Project>

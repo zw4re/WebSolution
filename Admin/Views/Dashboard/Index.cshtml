@@ -1,4 +1,4 @@
-@model List<Entities.DbModels.TcmbExchangeRate>
+@model Entities.Presentation.DashboardViewModel
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -7,8 +7,7 @@
 
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-
-<!-- ✅ Bootstrap Icons CDN -->
+<!-- Bootstrap Icons CDN -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
 
 <div class="d-flex">
@@ -26,9 +25,8 @@
                     <i class="bi bi-table me-2"></i> Tables
                 </a>
             </li>
-
             <li class="nav-item mb-2">
-                <a href="#jobsSection" class="nav-link text-white d-flex align-items-center">
+                <a class="nav-link text-white d-flex align-items-center" href="#jobsSection">
                     <i class="bi bi-folder-fill me-2"></i> Jobs
                 </a>
             </li>
@@ -47,10 +45,25 @@
 
     <!-- Main content -->
     <div id="main-content" class="p-4 flex-grow-1 bg-light" style="width: 100%;">
+
+        @* İlk yüklemede kartta JobAdı - yerel saat *@
+        @{
+            var lastJobServer = Model.RecurringJobs != null
+            ? Model.RecurringJobs
+            .Where(j => j.LastExecution.HasValue)
+            .OrderByDescending(j => j.LastExecution)
+            .FirstOrDefault()
+            : null;
+
+            var lastJobInitialText = lastJobServer != null
+            ? $"{(string.IsNullOrWhiteSpace(lastJobServer.Job) ? lastJobServer.Id : lastJobServer.Job)} - {lastJobServer.LastExecution?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")}"
+            : "Henüz çalışmadı";
+        }
+
         <div class="d-flex justify-content-between mb-4">
             <div class="card text-center shadow-sm p-3" style="width: 18rem;">
                 <h6 class="text-muted">KAP Verileri</h6>
-                <h3>@ViewBag.CompanyCount</h3>
+                <h3>@Model.CompanyCount</h3>
                 <p class="text-muted">Şirket Sayısı</p>
             </div>
             <div class="card text-center shadow-sm p-3" style="width: 18rem;">
@@ -61,7 +74,7 @@
             <div class="card text-center shadow-sm p-3" style="width: 18rem;">
                 <h6 class="text-muted">Job Kontrolleri</h6>
                 <p>Son job tarihi</p>
-                <h5>@ViewBag.LastJobTime</h5>
+                <h5 id="lastJobInfo">@lastJobInitialText</h5>
             </div>
         </div>
 
@@ -77,12 +90,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model != null && Model.Count > 0)
+                    @if (Model.ExchangeRates != null && Model.ExchangeRates.Count > 0)
                     {
-                        foreach (var item in Model)
+                        foreach (var item in Model.ExchangeRates)
                         {
                             <tr>
-                                <td>@item.Date.ToString("dd.MM.yyyy")</td>
+                                <td>@item.Date.ToLocalTime().ToString("dd.MM.yyyy")</td>
                                 <td>@item.CurrencyCode</td>
                                 <td>@item.Type</td>
                                 <td>@item.Value.ToString("N3")</td>
@@ -98,6 +111,7 @@
                 </tbody>
             </table>
         </div>
+
         <!-- Jobs kısmı -->
         <div id="jobsSection" class="container mt-4">
             <h2 class="mb-4">Mevcut İşlerim</h2>
@@ -116,19 +130,51 @@
                                 <th>ACTIONS</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>Daily Data Fetch</td>
-                                <td>0 0 * * *</td>
-                                <td>2025-07-08 00:00:05</td>
-                                <td>2025-07-09 00:00:00</td>
-                                <td><span class="badge bg-success">Success</span></td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></button>
-                                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                                </td>
-                            </tr>
-                            <!-- Diğer satırlar aynı kalabilir -->
+                        <tbody id="jobsTableBody">
+                            @if (Model.RecurringJobs != null && Model.RecurringJobs.Count > 0)
+                            {
+                                foreach (var job in Model.RecurringJobs)
+                                {
+                                    <tr>
+                                        <td>@job.Job</td>
+                                        <td>@job.Cron</td>
+                                        <td>@(job.LastExecution?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                                        <td>@(job.NextExecution?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                                        <td>
+                                            @if (job.Status == "Succeeded")
+                                            {
+                                                <span class="badge bg-success">Success</span>
+                                            }
+                                            else if (job.Status == "Failed")
+                                            {
+                                                <span class="badge bg-danger">Failed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">@job.Status</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <!-- AJAX tetikle -->
+                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                    title="Çalıştır" onclick="triggerJob('@job.Id')">
+                                                <i class="bi bi-play-fill"></i>
+                                            </button>
+                                            <!-- AJAX sil -->
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    title="Sil" onclick="deleteJob('@job.Id')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center">Job bulunamadı.</td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -136,3 +182,112 @@
         </div>
     </div>
 </div>
+
+<!-- ===== Jobs AJAX Scriptleri ===== -->
+<script>
+    async function triggerJob(id) {
+      try {
+        const res = await fetch(`/api/jobs/trigger/${encodeURIComponent(id)}`, {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+        if (res.status === 401) return redirectToLogin();
+        if (!res.ok) throw new Error('Tetikleme başarısız');
+
+        await wait(1500);
+        await refreshJobs();
+        toastInfo(`Job tetiklendi: ${id}`, 'success');
+      } catch (e) {
+        toastInfo(`Tetikleme hatası: ${e.message}`, 'danger');
+      }
+    }
+
+    async function deleteJob(id) {
+      if (!confirm('Bu job silinsin mi?')) return;
+      try {
+        const res = await fetch(`/api/jobs/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+        if (res.status === 401) return redirectToLogin();
+        if (!res.ok) throw new Error('Silme başarısız');
+
+        await refreshJobs();
+        toastInfo(`Job silindi: ${id}`, 'success');
+      } catch (e) {
+        toastInfo(`Silme hatası: ${e.message}`, 'danger');
+      }
+    }
+
+    async function refreshJobs() {
+      const res = await fetch('/api/jobs/recurring', { credentials: 'same-origin' });
+      if (res.status === 401) return redirectToLogin();
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const tbody = document.getElementById('jobsTableBody');
+
+      // ==== 1) Jobs tablosunu doldur ====
+      tbody.innerHTML = data.map(j => `
+        <tr>
+          <td>${safe(j.job) || '-'}</td>
+          <td>${safe(j.cron) || '-'}</td>
+          <td>${fmt(j.lastExecution)}</td>
+          <td>${fmt(j.nextExecution)}</td>
+          <td>${badge(j.status)}</td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-primary" title="Çalıştır"
+                    onclick="triggerJob('${j.id}')">
+              <i class="bi bi-play-fill"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" title="Sil"
+                    onclick="deleteJob('${j.id}')">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      // ==== 2) Job Kontrolleri kutusunu güncelle ====
+      const lastJobInfoEl = document.getElementById('lastJobInfo');
+      if (data.length > 0) {
+        const lastJob = data
+          .filter(j => j.lastExecution)
+          .sort((a, b) => new Date(b.lastExecution) - new Date(a.lastExecution))[0];
+
+        if (lastJob) {
+          const lastDate = fmt(lastJob.lastExecution);
+          const lastName = safe(lastJob.job) || lastJob.id;
+          lastJobInfoEl.innerText = `${lastName} - ${lastDate}`;
+        } else {
+          lastJobInfoEl.innerText = "Henüz çalışmadı";
+        }
+      } else {
+        lastJobInfoEl.innerText = "Henüz çalışmadı";
+      }
+    }
+
+    // ---- yardımcılar ----
+    function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+    function safe(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function pad(n){ return n < 10 ? ('0'+n) : n; }
+
+    // ⬇️ YEREL saat formatlayıcı
+    function fmt(x){
+      if (!x) return '-';
+      const d = new Date(x); // tarayıcı yerel saat'e çevirir
+      if (isNaN(d)) return '-';
+      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function badge(status){
+      if (!status) return '<span class="badge bg-secondary">-</span>';
+      const s = (status+'').toLowerCase();
+      if (s.includes('succeed') || s === 'success') return '<span class="badge bg-success">Success</span>';
+      if (s.includes('fail')) return '<span class="badge bg-danger">Failed</span>';
+      return `<span class="badge bg-secondary">${safe(status)}</span>`;
+    }
+    function toastInfo(msg, type){ console.log(`[${type}] ${msg}`); }
+    function redirectToLogin(){ window.location.href = '/Account/Login'; }
+    // document.addEventListener('DOMContentLoaded', refreshJobs);
+</script>

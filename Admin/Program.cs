@@ -1,5 +1,5 @@
-
 using Hangfire;
+using Admin.Services;
 
 namespace Admin
 {
@@ -9,7 +9,7 @@ namespace Admin
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            
 
             // MVC ve Razor view engine desteği ekleniyor
             builder.Services.AddControllersWithViews();
@@ -23,12 +23,13 @@ namespace Admin
                 });
             builder.Services.AddHangfire(config =>
             {
-                config.UseRedisStorage("localhost:6379"); // ← Burada senin Redis adresin neyse onu yaz
+                config.UseRedisStorage("localhost:6379"); 
             });
 
             builder.Services.AddHangfireServer();
+            // RedisService container’a ekleniyor
+            builder.Services.AddSingleton<RedisService>();
 
-           
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -51,7 +52,7 @@ namespace Admin
             app.UseAuthentication();
             // Kullanıcı yetkilendirme middleware'i
             app.UseAuthorization();
-            app.UseHangfireDashboard("/jobs");
+            app.UseHangfireDashboard("/hangfire");
             // Varsayılan route: Uygulama açıldığında Account/Login ekranı açılır
             app.UseEndpoints(endpoints =>
             {

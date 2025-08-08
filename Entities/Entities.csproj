@@ -7,7 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Presentation\" />
+    <Compile Remove="Presentation\NewFolder\**" />
+    <EmbeddedResource Remove="Presentation\NewFolder\**" />
+    <None Remove="Presentation\NewFolder\**" />
   </ItemGroup>
 
 </Project>

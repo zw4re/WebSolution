@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Collections.Generic;
 using System;
-using Entities.DbModels; 
+using Entities.DbModels;
+using Entities.Presentation; 
+using Admin.Services; 
 
 namespace Admin.Controllers
 {
@@ -17,11 +19,13 @@ namespace Admin.Controllers
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
+        private readonly RedisService _redisService;
 
-        public DashboardController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public DashboardController(IHttpClientFactory httpClientFactory, IConfiguration configuration, RedisService redisService)
         {
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
+            _redisService = redisService;
         }
 
         [HttpGet("/dashboard")]
@@ -39,7 +43,6 @@ namespace Admin.Controllers
                 var countString = await companyCountResponse.Content.ReadAsStringAsync();
                 int.TryParse(countString, out companyCount);
             }
-            ViewBag.CompanyCount = companyCount;
 
             // Son job zamanı
             DateTime? lastJobTime = null;
@@ -57,9 +60,8 @@ namespace Admin.Controllers
                     lastJobTime = lastExecutedJob?.LastExecution;
                 }
             }
-            ViewBag.LastJobTime = lastJobTime?.ToString("dd.MM.yyyy HH:mm") ?? "Henüz çalışmadı";
 
-            // En güncel 5 döviz kuru verisi 
+            // En güncel 5 döviz kuru verisi
             List<TcmbExchangeRate> rates = new();
             var latestRatesUrl = apiBase.Replace("/api/login", "/api/tcmb/latest");
             var latestRatesResponse = await client.GetAsync(latestRatesUrl);
@@ -72,7 +74,20 @@ namespace Admin.Controllers
                 });
             }
 
-            return View(rates); // View'e model olarak rates listesini gönder
+            // Redis üzerinden job listesi al
+            var jobs = _redisService.GetRecurringJobs(); 
+
+            // ViewModel oluştur
+            var viewModel = new DashboardViewModel
+            {
+                CompanyCount = companyCount,
+                LastJobTime = lastJobTime?.ToString("dd.MM.yyyy HH:mm") ?? "Henüz çalışmadı",
+                ExchangeRates = rates,
+                RecurringJobs = jobs 
+            };
+
+            return View(viewModel);
+
         }
 
         [HttpPost]

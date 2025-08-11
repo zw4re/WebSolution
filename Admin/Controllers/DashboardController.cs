@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Hangfire;
 using Hangfire.Storage;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 using Entities.DbModels;
 using Entities.Presentation; 
 using Admin.Services; 
@@ -88,13 +90,6 @@ namespace Admin.Controllers
 
             return View(viewModel);
 
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login", "Account");
         }
     }
 }

@@ -11,7 +11,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
 
 <div class="d-flex">
-    <!-- Sidebar -->
+    <!-- ================= SIDEBAR ================= -->
     <div class="bg-dark text-white p-3" style="min-height: 100vh; width: 250px;">
         <h4 class="mb-4">DASHBOARD</h4>
         <ul class="nav flex-column">
@@ -43,16 +43,13 @@
         </ul>
     </div>
 
-    <!-- Main content -->
+    <!-- ================= MAIN CONTENT ================= -->
     <div id="main-content" class="p-4 flex-grow-1 bg-light" style="width: 100%;">
 
-        @* İlk yüklemede kartta JobAdı - yerel saat *@
+        @* ---------- KARTLAR ---------- *@
         @{
             var lastJobServer = Model.RecurringJobs != null
-            ? Model.RecurringJobs
-            .Where(j => j.LastExecution.HasValue)
-            .OrderByDescending(j => j.LastExecution)
-            .FirstOrDefault()
+            ? Model.RecurringJobs.Where(j => j.LastExecution.HasValue).OrderByDescending(j => j.LastExecution).FirstOrDefault()
             : null;
 
             var lastJobInitialText = lastJobServer != null
@@ -78,6 +75,7 @@
             </div>
         </div>
 
+        @* ---------- SON DÖVİZ KURLARI ---------- *@
         <h5 class="mb-3">Son Döviz Kurları</h5>
         <div class="table-responsive">
             <table class="table table-bordered bg-white shadow-sm">
@@ -112,10 +110,9 @@
             </table>
         </div>
 
-        <!-- Jobs kısmı -->
+        @* ---------- JOB LİSTESİ ---------- *@
         <div id="jobsSection" class="container mt-4">
             <h2 class="mb-4">Mevcut İşlerim</h2>
-
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title">Scheduled Jobs</h5>
@@ -155,14 +152,10 @@
                                             }
                                         </td>
                                         <td>
-                                            <!-- AJAX tetikle -->
-                                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                                    title="Çalıştır" onclick="triggerJob('@job.Id')">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Çalıştır" onclick="triggerJob('@job.Id')">
                                                 <i class="bi bi-play-fill"></i>
                                             </button>
-                                            <!-- AJAX sil -->
-                                            <button type="button" class="btn btn-sm btn-outline-danger"
-                                                    title="Sil" onclick="deleteJob('@job.Id')">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Sil" onclick="deleteJob('@job.Id')">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </td>
@@ -171,123 +164,429 @@
                             }
                             else
                             {
-                                <tr>
-                                    <td colspan="6" class="text-center">Job bulunamadı.</td>
-                                </tr>
+                                <tr><td colspan="6" class="text-center">Job bulunamadı.</td></tr>
                             }
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
+
+        @* ---------- ŞİRKET BİLGİLERİ (SAYFALAMA + FİLTRE) ---------- *@
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body">
+                <h6 class="mb-3 fw-semibold">Şirket Bilgileri</h6>
+
+                @* Arama & Dinamik Filtreler *@
+                <div class="d-flex gap-2 align-items-center mb-3 flex-wrap">
+                    <div class="input-group" style="max-width:420px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input id="cmp-search" type="text" class="form-control" placeholder="Şirket ara... (ad / hisse kodu)">
+                    </div>
+                    <div class="ms-auto d-flex gap-2">
+                        <select id="cmp-filter-city" class="form-select form-select-sm" style="width:170px">
+                            <option value="">Şehir (hepsi)</option>
+                        </select>
+                        <select id="cmp-filter-type" class="form-select form-select-sm" style="width:170px">
+                            <option value="">Tür (hepsi)</option>
+                        </select>
+                    </div>
+                </div>
+
+                @* Tablo *@
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width:38%">Şirket Adı</th>
+                                <th style="width:14%">Hisse Kodu</th>
+                                <th style="width:18%">Şehir</th>
+                                <th style="width:18%">Tür</th>
+                                <th class="text-end" style="width:12%">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cmp-tbody"></tbody>
+                    </table>
+                </div>
+
+                @* Toplam + Sayfalama *@
+                <div class="d-flex justify-content-between align-items-center">
+                    <small id="cmp-total" class="text-muted">Toplam 0 kayıt</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="cmp-pager"></ul>
+                    </nav>
+                </div>
+
+                <hr class="my-4" />
+
+                @* Yeni Şirket Ekle *@
+                <h6 class="fw-semibold mb-2">Yeni Şirket Ekle</h6>
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md"><input id="cmp-new-name" class="form-control" placeholder="Şirket Adı"></div>
+                    <div class="col-6 col-md-2"><input id="cmp-new-code" class="form-control text-uppercase" placeholder="Hisse Kodu"></div>
+                    <div class="col-6 col-md-2"><input id="cmp-new-city" class="form-control" placeholder="Şehir"></div>
+                    <div class="col-6 col-md-2">
+                        <select id="cmp-new-type" class="form-select">
+                            <option value="">Tür</option>
+                            <option>Banka</option>
+                            <option>Sanayi</option>
+                            <option>Ulaştırma</option>
+                            <option>Teknoloji</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-auto d-flex gap-2">
+                        <button id="cmp-add" class="btn btn-success"><i class="bi bi-plus-circle"></i> Ekle</button>
+                        <button id="cmp-add-cancel" class="btn btn-outline-secondary">Vazgeç</button>
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                @* Şirket Düzenle *@
+                <h6 class="fw-semibold mb-2">Şirket Düzenle</h6>
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md"><input id="cmp-edit-name" class="form-control" placeholder="Şirket Adı" disabled></div>
+                    <div class="col-6 col-md-2"><input id="cmp-edit-code" class="form-control text-uppercase" placeholder="Hisse Kodu" disabled></div>
+                    <div class="col-6 col-md-2"><input id="cmp-edit-city" class="form-control" placeholder="Şehir" disabled></div>
+                    <div class="col-6 col-md-2">
+                        <select id="cmp-edit-type" class="form-select" disabled>
+                            <option value="">Tür</option>
+                            <option>Banka</option>
+                            <option>Sanayi</option>
+                            <option>Ulaştırma</option>
+                            <option>Teknoloji</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-auto d-flex gap-2">
+                        <button id="cmp-update" class="btn btn-primary" disabled><i class="bi bi-save"></i> Düzenle</button>
+                        <button id="cmp-cancel" class="btn btn-outline-secondary" disabled>Vazgeç</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- ===== Jobs AJAX Scriptleri ===== -->
-<script>
-    async function triggerJob(id) {
-      try {
-        const res = await fetch(`/api/jobs/trigger/${encodeURIComponent(id)}`, {
-          method: 'POST',
-          credentials: 'same-origin'
-        });
-        if (res.status === 401) return redirectToLogin();
-        if (!res.ok) throw new Error('Tetikleme başarısız');
+@section Scripts {
+    <script>
+        /* ============================================================================
+           JOBS (Hangfire) – Helpers + AJAX (Mevcut)
+           ========================================================================== */
+        function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
+        function safe(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function pad(n){ return n < 10 ? ('0'+n) : n; }
+        function fmt(x){ if(!x) return '-'; const d=new Date(x); if(isNaN(d)) return '-'; return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+        function badge(status){ if(!status) return '<span class="badge bg-secondary">-</span>'; const s=(status+'').toLowerCase(); if(s.includes('succeed')||s==='success') return '<span class="badge bg-success">Success</span>'; if(s.includes('fail')) return '<span class="badge bg-danger">Failed</span>'; return `<span class="badge bg-secondary">${safe(status)}</span>`; }
+        function toastInfo(msg,type){ console.log(`[${type}] ${msg}`); }
+        function redirectToLogin(){ window.location.href = '/Account/Login'; }
 
-        await wait(1500);
-        await refreshJobs();
-        toastInfo(`Job tetiklendi: ${id}`, 'success');
-      } catch (e) {
-        toastInfo(`Tetikleme hatası: ${e.message}`, 'danger');
-      }
-    }
-
-    async function deleteJob(id) {
-      if (!confirm('Bu job silinsin mi?')) return;
-      try {
-        const res = await fetch(`/api/jobs/${encodeURIComponent(id)}`, {
-          method: 'DELETE',
-          credentials: 'same-origin'
-        });
-        if (res.status === 401) return redirectToLogin();
-        if (!res.ok) throw new Error('Silme başarısız');
-
-        await refreshJobs();
-        toastInfo(`Job silindi: ${id}`, 'success');
-      } catch (e) {
-        toastInfo(`Silme hatası: ${e.message}`, 'danger');
-      }
-    }
-
-    async function refreshJobs() {
-      const res = await fetch('/api/jobs/recurring', { credentials: 'same-origin' });
-      if (res.status === 401) return redirectToLogin();
-      if (!res.ok) return;
-
-      const data = await res.json();
-      const tbody = document.getElementById('jobsTableBody');
-
-      // ==== 1) Jobs tablosunu doldur ====
-      tbody.innerHTML = data.map(j => `
-        <tr>
-          <td>${safe(j.job) || '-'}</td>
-          <td>${safe(j.cron) || '-'}</td>
-          <td>${fmt(j.lastExecution)}</td>
-          <td>${fmt(j.nextExecution)}</td>
-          <td>${badge(j.status)}</td>
-          <td>
-            <button type="button" class="btn btn-sm btn-outline-primary" title="Çalıştır"
-                    onclick="triggerJob('${j.id}')">
-              <i class="bi bi-play-fill"></i>
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-danger" title="Sil"
-                    onclick="deleteJob('${j.id}')">
-              <i class="bi bi-trash"></i>
-            </button>
-          </td>
-        </tr>
-      `).join('');
-
-      // ==== 2) Job Kontrolleri kutusunu güncelle ====
-      const lastJobInfoEl = document.getElementById('lastJobInfo');
-      if (data.length > 0) {
-        const lastJob = data
-          .filter(j => j.lastExecution)
-          .sort((a, b) => new Date(b.lastExecution) - new Date(a.lastExecution))[0];
-
-        if (lastJob) {
-          const lastDate = fmt(lastJob.lastExecution);
-          const lastName = safe(lastJob.job) || lastJob.id;
-          lastJobInfoEl.innerText = `${lastName} - ${lastDate}`;
-        } else {
-          lastJobInfoEl.innerText = "Henüz çalışmadı";
+        async function triggerJob(id) {
+          try {
+            const res = await fetch(`/api/jobs/trigger/${encodeURIComponent(id)}`, { method: 'POST', credentials: 'same-origin' });
+            if (res.status === 401) return redirectToLogin();
+            if (!res.ok) throw new Error('Tetikleme başarısız');
+            await wait(1500);
+            await refreshJobs();
+            toastInfo(`Job tetiklendi: ${id}`, 'success');
+          } catch (e) { toastInfo(`Tetikleme hatası: ${e.message}`, 'danger'); }
         }
-      } else {
-        lastJobInfoEl.innerText = "Henüz çalışmadı";
-      }
-    }
 
-    // ---- yardımcılar ----
-    function wait(ms){ return new Promise(r => setTimeout(r, ms)); }
-    function safe(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-    function pad(n){ return n < 10 ? ('0'+n) : n; }
+        async function deleteJob(id) {
+          if (!confirm('Bu job silinsin mi?')) return;
+          try {
+            const res = await fetch(`/api/jobs/${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'same-origin' });
+            if (res.status === 401) return redirectToLogin();
+            if (!res.ok) throw new Error('Silme başarısız');
+            await refreshJobs();
+            toastInfo(`Job silindi: ${id}`, 'success');
+          } catch (e) { toastInfo(`Silme hatası: ${e.message}`, 'danger'); }
+        }
 
-    // ⬇️ YEREL saat formatlayıcı
-    function fmt(x){
-      if (!x) return '-';
-      const d = new Date(x); // tarayıcı yerel saat'e çevirir
-      if (isNaN(d)) return '-';
-      return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    }
+        async function refreshJobs() {
+          const res = await fetch('/api/jobs/recurring', { credentials: 'same-origin' });
+          if (res.status === 401) return redirectToLogin();
+          if (!res.ok) return;
+          const data = await res.json();
+          const tbody = document.getElementById('jobsTableBody');
 
-    function badge(status){
-      if (!status) return '<span class="badge bg-secondary">-</span>';
-      const s = (status+'').toLowerCase();
-      if (s.includes('succeed') || s === 'success') return '<span class="badge bg-success">Success</span>';
-      if (s.includes('fail')) return '<span class="badge bg-danger">Failed</span>';
-      return `<span class="badge bg-secondary">${safe(status)}</span>`;
-    }
-    function toastInfo(msg, type){ console.log(`[${type}] ${msg}`); }
-    function redirectToLogin(){ window.location.href = '/Account/Login'; }
-    // document.addEventListener('DOMContentLoaded', refreshJobs);
-</script>
+          tbody.innerHTML = data.map(j => `
+            <tr>
+              <td>${safe(j.job) || '-'}</td>
+              <td>${safe(j.cron) || '-'}</td>
+              <td>${fmt(j.lastExecution)}</td>
+              <td>${fmt(j.nextExecution)}</td>
+              <td>${badge(j.status)}</td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-primary" title="Çalıştır" onclick="triggerJob('${j.id}')">
+                  <i class="bi bi-play-fill"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" title="Sil" onclick="deleteJob('${j.id}')">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>`).join('');
+
+          const lastJobInfoEl = document.getElementById('lastJobInfo');
+          if (data.length > 0) {
+            const lastJob = data.filter(j => j.lastExecution).sort((a,b)=> new Date(b.lastExecution) - new Date(a.lastExecution))[0];
+            lastJobInfoEl.innerText = lastJob ? `${safe(lastJob.job) || lastJob.id} - ${fmt(lastJob.lastExecution)}` : "Henüz çalışmadı";
+          } else {
+            lastJobInfoEl.innerText = "Henüz çalışmadı";
+          }
+        }
+    </script>
+
+    <script>
+        /* 
+           ŞİRKET BİLGİLERİ – SAYFALAMA + FİLTRE + CRUD (Front-end demo)
+           1) API'den çek → 2) filtre/dropdownları doldur → 3) sayfalı render → 4) CRUD
+        */
+
+        (() => {
+          const pageSize = 10;             // Her sayfada 10 kayıt
+          let editingId = null;
+
+          const state = {
+            rows: [],                      // API’den gelen (map’lenmiş) tüm kayıtlar
+            page: 1,                       // aktif sayfa
+            q: "",                         // arama metni
+            city: "",                      // şehir filtresi
+            type: ""                       // tür filtresi
+          };
+
+          // Kısa yardımcı
+          const el = id => document.getElementById(id);
+
+          // Boşları atıp benzersiz değer seti çıkar (şehir/tür için)
+          function uniq(arr){ return [...new Set(arr.filter(x => x && x !== "-"))]; }
+
+          // Form temizleyiciler - Yeni şirket ekle
+           function clearNewForm(){
+            const name = el("cmp-new-name");
+            const code = el("cmp-new-code");
+            const city = el("cmp-new-city");
+            const type = el("cmp-new-type");
+
+            name.value = "";
+            code.value = "";
+            city.value = "";
+            type.selectedIndex = 0;
+
+            [name, code, city, type].forEach(x => x.classList.remove("is-invalid","is-valid"));
+            name.focus();
+        }
+
+          function clearEdit(){
+            editingId = null;
+            ["cmp-edit-name","cmp-edit-code","cmp-edit-city","cmp-edit-type"].forEach(i => { el(i).value = ""; el(i).disabled = true; });
+            ["cmp-update","cmp-cancel"].forEach(i => el(i).disabled = true);
+          }
+
+          // Arama + filtre uygulanmış veri
+          function getFiltered(){
+            const q = state.q.trim().toLowerCase();
+            return state.rows.filter(r =>
+              (!q || r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q)) &&
+              (!state.city || r.city === state.city) &&
+              (!state.type || r.type === state.type)
+            );
+          }
+
+          // Filtre dropdownlarını veriden doldur
+          function renderFiltersFromData(){
+            const cities = uniq(state.rows.map(r => r.city)).sort((a,b)=>a.localeCompare(b,'tr'));
+            const types  = uniq(state.rows.map(r => r.type)).sort((a,b)=>a.localeCompare(b,'tr'));
+            el("cmp-filter-city").innerHTML = `<option value="">Şehir (hepsi)</option>` + cities.map(c=>`<option value="${c}">${c}</option>`).join("");
+            el("cmp-filter-type").innerHTML = `<option value="">Tür (hepsi)</option>` + types.map(t=>`<option value="${t}">${t}</option>`).join("");
+          }
+
+          // Sayfalama bileşeni çiz
+          function renderPager(total, pages){
+            const pager = [];
+            const cur = state.page;
+
+            // İlk & Önce
+            pager.push(`<li class="page-item ${cur===1?'disabled':''}"><a class="page-link" href="#" data-page="first" aria-label="İlk">&laquo;</a></li>`);
+            pager.push(`<li class="page-item ${cur===1?'disabled':''}"><a class="page-link" href="#" data-page="prev" aria-label="Önceki">&lsaquo;</a></li>`);
+
+            // Numara (kompakt: mevcut ve etrafındaki 2 sayfa)
+            const start = Math.max(1, cur - 2);
+            const end   = Math.min(pages, cur + 2);
+            for (let i = start; i <= end; i++){
+              pager.push(`<li class="page-item ${i===cur?'active':''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`);
+            }
+
+            // Sonraki & Son
+            pager.push(`<li class="page-item ${cur===pages?'disabled':''}"><a class="page-link" href="#" data-page="next" aria-label="Sonraki">&rsaquo;</a></li>`);
+            pager.push(`<li class="page-item ${cur===pages?'disabled':''}"><a class="page-link" href="#" data-page="last" aria-label="Son">&raquo;</a></li>`);
+
+            el("cmp-pager").innerHTML = pager.join("");
+
+            // Tıklamalar
+            document.querySelectorAll("#cmp-pager a[data-page]").forEach(a=>{
+              a.addEventListener("click",(e)=>{
+                e.preventDefault();
+                const val = a.dataset.page;
+                if (val === "first") state.page = 1;
+                else if (val === "prev") state.page = Math.max(1, state.page - 1);
+                else if (val === "next") state.page = Math.min(pages, state.page + 1);
+                else if (val === "last") state.page = pages;
+                else state.page = +val;
+                render();
+              });
+            });
+          }
+
+          // Tabloyu (aktif sayfa ile) çiz
+          function render(){
+            const data = getFiltered();
+            const total = data.length;
+            const pages = Math.max(1, Math.ceil(total / pageSize));
+            if (state.page > pages) state.page = pages;
+
+            // Toplam
+            el("cmp-total").textContent = `Toplam ${total} kayıt`;
+
+            // Dilim
+            const start = (state.page - 1) * pageSize;
+            const slice = data.slice(start, start + pageSize);
+
+            // Satırlar
+            el("cmp-tbody").innerHTML = slice.map(x => `
+              <tr class="cmp-row" data-id="${x.id}">
+                <td>${x.name}</td>
+                <td><span class="badge bg-light text-dark">${x.code}</span></td>
+                <td>${x.city}</td>
+                <td>${x.type}</td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-danger btn-del"><i class="bi bi-trash"></i></button>
+                </td>
+              </tr>`).join("");
+
+            // Satır tıklayınca düzenleme formunu doldur
+            document.querySelectorAll("#cmp-tbody tr.cmp-row").forEach(tr=>{
+              tr.addEventListener("click", ()=>{
+                const id = +tr.dataset.id;
+                startEdit(id);
+              });
+            });
+
+            // Satır içi sil
+            document.querySelectorAll("#cmp-tbody .btn-del").forEach(btn=>{
+              btn.addEventListener("click",(e)=>{
+                e.stopPropagation();
+                const id = +e.currentTarget.closest("tr").dataset.id;
+                if(confirm("Bu kaydı silmek istiyor musunuz?")){
+                  state.rows = state.rows.filter(r=>r.id!==id);
+                  if (editingId===id) clearEdit();
+                  // Silmeden sonra sayfa boş kalırsa bir önceki sayfaya dön
+                  const after = getFiltered();
+                  const maxPages = Math.max(1, Math.ceil(after.length / pageSize));
+                  if (state.page > maxPages) state.page = maxPages;
+                  render();
+                }
+              });
+            });
+
+            // Sayfalama
+            renderPager(total, pages);
+          }
+
+          // Düzenleme başlat
+          function startEdit(id){
+            const r = state.rows.find(x=>x.id===id); if(!r) return;
+            editingId = id;
+            el("cmp-edit-name").value = r.name;
+            el("cmp-edit-code").value = r.code;
+            el("cmp-edit-city").value = r.city;
+            el("cmp-edit-type").value = r.type;
+            ["cmp-edit-name","cmp-edit-code","cmp-edit-city","cmp-edit-type","cmp-update","cmp-cancel"].forEach(i=> el(i).disabled=false);
+          }
+
+          // === Eventler ===
+          el("cmp-search").addEventListener("input", e=>{ state.q=e.target.value; state.page=1; render(); });
+          el("cmp-filter-city").addEventListener("change", e=>{ state.city=e.target.value; state.page=1; render(); });
+          el("cmp-filter-type").addEventListener("change", e=>{ state.type=e.target.value; state.page=1; render(); });
+
+          // Yeni ekle (front-end)
+                  el("cmp-add").addEventListener("click", async () => {
+            const name = el("cmp-new-name").value.trim();
+            const code = el("cmp-new-code").value.trim().toUpperCase();
+            const city = el("cmp-new-city").value.trim();
+            const type = el("cmp-new-type").value;
+
+            if(!name || !code || !city || !type){
+                alert("Lütfen tüm alanları doldurun.");
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/companies", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        name: name,
+                        stockCode: code,
+                        city: city,
+                        type: type
+                    })
+                });
+
+                if (res.status === 401) { redirectToLogin(); return; }
+                if (!res.ok) throw new Error(await res.text().catch(()=> "Şirket eklenemedi"));
+
+                clearNewForm();
+                state.page = 1;
+                await loadCompaniesFromApi();
+                toastInfo("Şirket başarıyla eklendi.", "success");
+            } catch (e) {
+                console.error(e);
+                alert(e.message || "Beklenmeyen bir hata oluştu.");
+            }
+        });
+
+        el("cmp-add-cancel").addEventListener("click", (e) => {
+            e.preventDefault();
+            clearNewForm();
+        });
+
+          // Düzenle – Kaydet / Vazgeç
+          el("cmp-update").addEventListener("click", ()=>{
+            if(!editingId) return;
+            const idx = state.rows.findIndex(x=>x.id===editingId);
+            Object.assign(state.rows[idx], {
+              name: el("cmp-edit-name").value.trim(),
+              code: el("cmp-edit-code").value.trim().toUpperCase(),
+              city: el("cmp-edit-city").value.trim(),
+              type: el("cmp-edit-type").value
+            });
+            clearEdit(); render();
+          });
+          el("cmp-cancel").addEventListener("click", ()=>{ clearEdit(); });
+
+          // === API’den veri çek ===
+          async function loadCompaniesFromApi(){
+            try{
+              const res = await fetch("http://localhost:5072/api/companies"); // ← DatabaseService endpoint
+              const data = await res.json();
+              state.rows = data.map((c, idx) => ({
+                id: idx + 1,
+                name: c.kapMemberTitle,
+                code: c.stockCode,
+                city: c.cityName,
+                type: c.kapMemberType
+              }));
+              renderFiltersFromData();
+              state.page = 1; // ilk sayfa
+              render();
+            }catch(err){
+              console.error("Şirket listesi alınamadı:", err);
+            }
+          }
+
+          // İlk yüklemede veriyi getir
+          loadCompaniesFromApi();
+        })();
+    </script>
+}

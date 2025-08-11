@@ -5,7 +5,6 @@
     <meta charset="utf-8" />
     <title>@ViewData["Title"] - Admin Panel</title>
 
-    <!-- Mobil uyumlu viewport ayarı -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <!-- Bootstrap 5 CSS -->
@@ -19,7 +18,6 @@
 
 <body class="bg-light min-vh-100">
 
-    @* Tüm sayfa içerikleri buraya yansıtılır (örneğin Dashboard, Jobs, Settings vs.) *@
     <div id="main-content">
         @RenderBody()
     </div>
@@ -29,5 +27,6 @@
             integrity="sha384-qQ2iX+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
             crossorigin="anonymous"></script>
 
+    @RenderSection("Scripts", required: false)
 </body>
 </html>

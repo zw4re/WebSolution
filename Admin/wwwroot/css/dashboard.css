@@ -1,5 +1,6 @@
-body { 
-    background: #f0f2f5; 
+/* ========== Mevcut stiller ========== */
+body {
+    background: #f0f2f5;
 }
 
 .sidebar {
@@ -12,34 +13,38 @@ body {
     justify-content: space-between;
 }
 
-.sidebar .nav-link.active {
-    background: #f0f2f5;
-    font-weight: bold;
-    border-radius: 8px;
-}
+    .sidebar .nav-link.active {
+        background: #f0f2f5;
+        font-weight: bold;
+        border-radius: 8px;
+    }
 
-.sidebar .logout-btn {
-    color: #dc3545;
-    font-weight: bold;
-    border: none;
-    background: none;
-    width: 100%;
-    text-align: left;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-}
+    .sidebar .logout-btn {
+        color: #dc3545;
+        font-weight: bold;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
 
-.sidebar .logout-btn:hover {
-    background: #ffeaea;
-}
+        .sidebar .logout-btn:hover {
+            background: #ffeaea;
+        }
 
-/* Responsive için media query */
+/* Responsive */
 @media (max-width: 768px) {
-    .sidebar { 
-        min-width: 60px; 
-        padding: 1rem 0.5rem; 
+    .sidebar {
+        min-width: 60px;
+        padding: 1rem 0.5rem;
     }
-    .sidebar .nav-link span { 
-        display: none; 
-    }
-} 
+
+        .sidebar .nav-link span {
+            display: none;
+        }
+}
+
+
+}

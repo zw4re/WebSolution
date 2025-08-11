@@ -9,33 +9,36 @@ namespace Admin
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            
-
-            // MVC ve Razor view engine desteği ekleniyor
+            // MVC ve Razor view engine desteği
             builder.Services.AddControllersWithViews();
-            // HttpClient servisi ekleniyor (API çağrıları için)
+
+            // HttpClient servisi (API çağrıları için)
             builder.Services.AddHttpClient();
-            // Cookie Authentication servisi ekleniyor
+
+            // Cookie Authentication
             builder.Services.AddAuthentication("Cookies")
                 .AddCookie("Cookies", options =>
                 {
                     options.LoginPath = "/Account/Login";
                 });
+
+            // Hangfire Redis ayarı
             builder.Services.AddHangfire(config =>
             {
-                config.UseRedisStorage("localhost:6379"); 
+                config.UseRedisStorage("localhost:6379");
             });
-
             builder.Services.AddHangfireServer();
-            // RedisService container’a ekleniyor
+
+            // RedisService ekleme
             builder.Services.AddSingleton<RedisService>();
 
+            // Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // Swagger
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -43,19 +46,22 @@ namespace Admin
             }
 
             app.UseHttpsRedirection();
-
-            // Statik dosyaların (css, js, img) sunulabilmesi için
             app.UseStaticFiles();
-            // Routing middleware'i ekleniyor
             app.UseRouting();
-            // Kullanıcı kimlik doğrulama middleware'i
+
+            // Auth middleware
             app.UseAuthentication();
-            // Kullanıcı yetkilendirme middleware'i
             app.UseAuthorization();
+
+            // Hangfire Dashboard
             app.UseHangfireDashboard("/hangfire");
-            // Varsayılan route: Uygulama açıldığında Account/Login ekranı açılır
+
             app.UseEndpoints(endpoints =>
             {
+                // API Controller'lar
+                endpoints.MapControllers();
+
+                // Varsayılan route
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Account}/{action=Login}/{id?}");

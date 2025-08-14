@@ -9,36 +9,37 @@ namespace Admin
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // MVC ve Razor view engine desteği
             builder.Services.AddControllersWithViews();
-
-            // HttpClient servisi (API çağrıları için)
             builder.Services.AddHttpClient();
 
-            // Cookie Authentication
+            // Session
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.Cookie.Name = ".Admin.Session";
+                options.IdleTimeout = TimeSpan.FromHours(4);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
+
+            // Cookie Auth
             builder.Services.AddAuthentication("Cookies")
                 .AddCookie("Cookies", options =>
                 {
                     options.LoginPath = "/Account/Login";
                 });
 
-            // Hangfire Redis ayarı
-            builder.Services.AddHangfire(config =>
-            {
-                config.UseRedisStorage("localhost:6379");
-            });
+            // Hangfire (Redis)
+            builder.Services.AddHangfire(cfg => cfg.UseRedisStorage("localhost:6379"));
             builder.Services.AddHangfireServer();
 
-            // RedisService ekleme
             builder.Services.AddSingleton<RedisService>();
 
-            // Swagger
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Swagger
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -47,25 +48,22 @@ namespace Admin
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
+
             app.UseRouting();
 
-            // Auth middleware
+            // Session mutlaka burada
+            app.UseSession();
+
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // Hangfire Dashboard
             app.UseHangfireDashboard("/hangfire");
 
-            app.UseEndpoints(endpoints =>
-            {
-                // API Controller'lar
-                endpoints.MapControllers();
-
-                // Varsayılan route
-                endpoints.MapControllerRoute(
-                    name: "default",
-                    pattern: "{controller=Account}/{action=Login}/{id?}");
-            });
+            // Endpoint mapping (UseEndpoints yerine bu yolu kullanalım)
+            app.MapControllers();
+            app.MapControllerRoute(
+                name: "default",
+                pattern: "{controller=Account}/{action=Login}/{id?}");
 
             app.Run();
         }

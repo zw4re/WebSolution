@@ -30,11 +30,13 @@ namespace Worker.Services
             var url = "https://www.kap.org.tr/tr/bist-sirketler";
             var html = await _httpClient.GetStringAsync(url);
 
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
+            var doc = new HtmlDocument(); // yeni html nesnesi oluşturdm
+            doc.LoadHtml(html); // yukarıda indirdiğim htmli bu nesneye yükledim
 
-            var scripts = doc.DocumentNode.SelectNodes("//script");
+            var scripts = doc.DocumentNode.SelectNodes("//script"); // html içindeki script etiketlerini dönecek
             string jsonString = null;
+
+            //Doğru scripti bulma ve Json çıkartma 
 
             foreach (var script in scripts)
             {
@@ -42,12 +44,42 @@ namespace Worker.Services
 
                 if (content.Contains("kapMemberTitle") && content.Contains("relatedMemberTitle"))
                 {
-                    var match = Regex.Match(content, @"\[\{.*?\}\]");
-                    if (match.Success)
+                    // Köşeli parantez sayarak tam jsonu çıkarma
+                    int start = content.IndexOf("[{", StringComparison.Ordinal);
+                    if (start >= 0)
                     {
-                        jsonString = match.Value;
-                        break;
+                        int bracket = 0;
+                        int endIndex = -1;
+
+                        for (int i = start; i < content.Length; i++)
+                        {
+                            char ch = content[i];
+                            if (ch == '[') bracket++;
+                            else if (ch == ']') bracket--;
+
+                            if (bracket == 0) // sayaç eğer 0sa json stringin sonuna gelmiş oluyoruz
+                            {
+                                endIndex = i;
+                                break;
+                            }
+                        }
+
+                        if (endIndex > start)
+                        {
+                            jsonString = content.Substring(start, endIndex - start + 1);
+                        }
                     }
+
+                    // Fallback hala yoksa regex ile [ { … } ] yapıyı arar
+                    if (jsonString == null)
+                    {
+                        var match = Regex.Match(content, @"\[\s*\{.*\}\s*\]", RegexOptions.Singleline);
+                        if (match.Success)
+                            jsonString = match.Value;
+                    }
+
+                    if (jsonString != null)
+                        break;
                 }
             }
 
@@ -62,9 +94,23 @@ namespace Worker.Services
 
             try
             {
-                jsonString = jsonString.Replace("\\\"", "\"");
-                jsonString = jsonString + "}]";
+                
+                var trimmed = jsonString.Trim();
 
+                if (trimmed.StartsWith("\"") && trimmed.EndsWith("\""))
+                {
+                    // Dıştan tırnaklı "JSON string" ise gerçek metne çevirir
+                    jsonString = JsonSerializer.Deserialize<string>(trimmed);
+                }
+                else if (jsonString.Contains("\\\"code\\\"") || jsonString.Contains("\\\"kapMemberTitle\\\""))
+                {
+                    // Dıştan tırnak yok ama içeride kaçışlar varsa temel kaçışları çözer
+                    jsonString = jsonString
+                        .Replace("\\\"", "\"")
+                        .Replace("\\/", "/");
+                }
+
+                // Deserialize 
                 var wrapperList = JsonSerializer.Deserialize<List<CompanyWrapperJsonModel>>(jsonString);
 
                 if (wrapperList == null || wrapperList.Count == 0)
@@ -82,8 +128,7 @@ namespace Worker.Services
                     foreach (var parsed in wrapper.content)
                     {
                         bool hasNullValue = parsed.GetType().GetProperties().Any(prop => prop.GetValue(parsed) == null);
-                        if (hasNullValue)
-                            continue;
+                        if (hasNullValue) continue;
 
                         var company = new
                         {
@@ -96,13 +141,9 @@ namespace Worker.Services
                             KapMemberType = parsed.kapMemberType
                         };
 
-                        // Company nesnesini HTTP POST ile DatabaseService'e gönder
                         var response = await _httpClient.PostAsJsonAsync($"{_dbServiceUrl}/api/companies", company);
-
                         if (!response.IsSuccessStatusCode)
-                        {
                             Console.WriteLine($"Gönderim başarısız: {response.StatusCode}");
-                        }
                     }
                 }
 
@@ -113,5 +154,7 @@ namespace Worker.Services
                 Console.WriteLine($"Hata: {ex.Message}");
             }
         }
+
+
     }
 }

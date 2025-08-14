@@ -21,13 +21,18 @@
                 </a>
             </li>
             <li class="nav-item mb-2">
-                <a class="nav-link text-white d-flex align-items-center" href="/companies">
-                    <i class="bi bi-table me-2"></i> Tables
+                <a class="nav-link text-white d-flex align-items-center" href="#jobsSection">
+                    <i class="bi bi-folder-fill me-2"></i> Jobs
                 </a>
             </li>
             <li class="nav-item mb-2">
-                <a class="nav-link text-white d-flex align-items-center" href="#jobsSection">
-                    <i class="bi bi-folder-fill me-2"></i> Jobs
+                <a class="nav-link text-white d-flex align-items-center" href="#companiesSection">
+                    <i class="bi bi-building me-2"></i> Kap Şirketleri
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a class="nav-link text-white d-flex align-items-center" href="#tcmbSection">
+                    <i class="bi bi-cash-coin me-2"></i> Tcmb Döviz Kurları
                 </a>
             </li>
             <li class="nav-item mb-2">
@@ -175,7 +180,7 @@
         @* ---------- ŞİRKET BİLGİLERİ (SAYFALAMA + FİLTRE) ---------- *@
         <div class="card border-0 shadow-sm mt-4">
             <div class="card-body">
-                <h6 class="mb-3 fw-semibold">Şirket Bilgileri</h6>
+                <h6 id="companiesSection" class="mb-3 fw-semibold">Şirket Bilgileri</h6>
 
                 @* Arama & Dinamik Filtreler *@
                 <div class="d-flex gap-2 align-items-center mb-3 flex-wrap">
@@ -221,12 +226,21 @@
 
                 @* Yeni Şirket Ekle *@
                 <h6 class="fw-semibold mb-2">Yeni Şirket Ekle</h6>
-                <div class="row g-2 align-items-center">
-                    <div class="col-12 col-md"><input id="cmp-new-name" class="form-control" placeholder="Şirket Adı"></div>
-                    <div class="col-6 col-md-2"><input id="cmp-new-code" class="form-control text-uppercase" placeholder="Hisse Kodu"></div>
-                    <div class="col-6 col-md-2"><input id="cmp-new-city" class="form-control" placeholder="Şehir"></div>
+
+                <form id="cmp-add-form" method="post" action="/companies/create" class="row g-2 align-items-center">
+                    @Html.AntiForgeryToken()  <!-- Anti-forgery token (Controller’da Validate yoksa da sorun olmaz) -->
+                    <!-- Company modeline göre isimler: Name, StockCode, City, Type -->
+                    <div class="col-12 col-md">
+                        <input name="Name" id="cmp-new-name" class="form-control" placeholder="Şirket Adı">
+                    </div>
                     <div class="col-6 col-md-2">
-                        <select id="cmp-new-type" class="form-select">
+                        <input name="StockCode" id="cmp-new-code" class="form-control text-uppercase" placeholder="Hisse Kodu">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <input name="City" id="cmp-new-city" class="form-control" placeholder="Şehir">
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <select name="Type" id="cmp-new-type" class="form-select">
                             <option value="">Tür</option>
                             <option>Banka</option>
                             <option>Sanayi</option>
@@ -235,10 +249,13 @@
                         </select>
                     </div>
                     <div class="col-6 col-md-auto d-flex gap-2">
-                        <button id="cmp-add" class="btn btn-success"><i class="bi bi-plus-circle"></i> Ekle</button>
-                        <button id="cmp-add-cancel" class="btn btn-outline-secondary">Vazgeç</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-plus-circle"></i> Ekle
+                        </button>
+                        <button id="cmp-add-cancel" type="button" class="btn btn-outline-secondary">Vazgeç</button>
                     </div>
-                </div>
+                </form>
+
 
                 <hr class="my-4" />
 
@@ -262,6 +279,11 @@
                         <button id="cmp-cancel" class="btn btn-outline-secondary" disabled>Vazgeç</button>
                     </div>
                 </div>
+                <!-- Yeni alan: Tüm Döviz Kurları -->
+                <div id="ratesBlock" class="mt-4"></div>
+
+                
+
             </div>
         </div>
     </div>
@@ -344,7 +366,7 @@
 
         (() => {
           const pageSize = 10;             // Her sayfada 10 kayıt
-          let editingId = null;
+          
 
           const state = {
             rows: [],                      // API’den gelen (map’lenmiş) tüm kayıtlar
@@ -359,22 +381,6 @@
 
           // Boşları atıp benzersiz değer seti çıkar (şehir/tür için)
           function uniq(arr){ return [...new Set(arr.filter(x => x && x !== "-"))]; }
-
-          // Form temizleyiciler - Yeni şirket ekle
-           function clearNewForm(){
-            const name = el("cmp-new-name");
-            const code = el("cmp-new-code");
-            const city = el("cmp-new-city");
-            const type = el("cmp-new-type");
-
-            name.value = "";
-            code.value = "";
-            city.value = "";
-            type.selectedIndex = 0;
-
-            [name, code, city, type].forEach(x => x.classList.remove("is-invalid","is-valid"));
-            name.focus();
-        }
 
           function clearEdit(){
             editingId = null;
@@ -453,7 +459,7 @@
 
             // Satırlar
             el("cmp-tbody").innerHTML = slice.map(x => `
-              <tr class="cmp-row" data-id="${x.id}">
+              <tr class="cmp-row" data-id="${x.id}" data-code="${x.code}">
                 <td>${x.name}</td>
                 <td><span class="badge bg-light text-dark">${x.code}</span></td>
                 <td>${x.city}</td>
@@ -473,29 +479,44 @@
 
             // Satır içi sil
             document.querySelectorAll("#cmp-tbody .btn-del").forEach(btn=>{
-              btn.addEventListener("click",(e)=>{
+              btn.addEventListener("click", async (e)=>{
                 e.stopPropagation();
-                const id = +e.currentTarget.closest("tr").dataset.id;
-                if(confirm("Bu kaydı silmek istiyor musunuz?")){
-                  state.rows = state.rows.filter(r=>r.id!==id);
-                  if (editingId===id) clearEdit();
-                  // Silmeden sonra sayfa boş kalırsa bir önceki sayfaya dön
-                  const after = getFiltered();
-                  const maxPages = Math.max(1, Math.ceil(after.length / pageSize));
-                  if (state.page > maxPages) state.page = maxPages;
-                  render();
-                }
+                  const tr = e.currentTarget.closest("tr");
+                  const code = tr?.dataset.code;          // ← az önce eklediğimiz data-code
+                  if(!code) return;
+
+                  if(!confirm("Bu kaydı silmek istiyor musunuz?")) return;
+
+                    try{
+                        const res = await fetch(`/companies/${encodeURIComponent(code)}`, {
+                            method: "DELETE",
+                            credentials: "same-origin",
+                             headers: { "X-Requested-With": "XMLHttpRequest" }
+                  });
+                  if (res.status === 401) { redirectToLogin(); return; }
+                  if (!res.ok) throw new Error(await res.text().catch(()=> "Silme başarısız"));
+
+                   // Başarılıysa listeden tazele
+                    if (editingId) clearEdit();
+                    await loadCompaniesFromApi();
+                    toastInfo("Şirket silindi.", "success");
+                    }catch(err){
+                    console.error(err);
+                    alert(err.message || "Hata oluştu.");
+                  }
+                });
               });
-            });
 
             // Sayfalama
             renderPager(total, pages);
           }
-
+          let editingId = null;
+          let editingCode = null;
           // Düzenleme başlat
           function startEdit(id){
             const r = state.rows.find(x=>x.id===id); if(!r) return;
             editingId = id;
+            editingCode = r.code;
             el("cmp-edit-name").value = r.name;
             el("cmp-edit-code").value = r.code;
             el("cmp-edit-city").value = r.city;
@@ -508,62 +529,113 @@
           el("cmp-filter-city").addEventListener("change", e=>{ state.city=e.target.value; state.page=1; render(); });
           el("cmp-filter-type").addEventListener("change", e=>{ state.type=e.target.value; state.page=1; render(); });
 
-          // Yeni ekle (front-end)
-                  el("cmp-add").addEventListener("click", async () => {
-            const name = el("cmp-new-name").value.trim();
-            const code = el("cmp-new-code").value.trim().toUpperCase();
-            const city = el("cmp-new-city").value.trim();
-            const type = el("cmp-new-type").value;
+        // --- Yeni Şirket Ekle (AJAX POST /companies/create) ---
+        const addForm = document.getElementById("cmp-add-form");
 
-            if(!name || !code || !city || !type){
-                alert("Lütfen tüm alanları doldurun.");
-                return;
+        // Tek temizleyici (çift tanımı kaldırdım)
+        function clearNewForm(){
+          if (!addForm) return;
+          addForm.reset();
+          document.getElementById("cmp-new-name")?.focus();
+          ["cmp-new-name","cmp-new-code","cmp-new-city","cmp-new-type"]
+            .forEach(i => document.getElementById(i)?.classList.remove("is-invalid","is-valid"));
+        }
+
+        if (addForm) {
+          addForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            console.log("Yeni Şirket Ekle submit çalıştı"); // debug
+
+            const name = document.getElementById("cmp-new-name").value.trim();
+            const code = document.getElementById("cmp-new-code").value.trim().toUpperCase();
+            const city = document.getElementById("cmp-new-city").value.trim();
+            const type = document.getElementById("cmp-new-type").value;
+
+            if (!name || !code || !city || !type) {
+              alert("Lütfen tüm alanları doldurun.");
+              return;
             }
 
             try {
-                const res = await fetch("/api/companies", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "same-origin",
-                    body: JSON.stringify({
-                        name: name,
-                        stockCode: code,
-                        city: city,
-                        type: type
-                    })
-                });
+              const fd = new FormData(addForm); // Anti-forgery token dahil
+              const res = await fetch(addForm.action, {
+                method: "POST",
+                body: fd,
+                credentials: "same-origin",
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+              });
 
-                if (res.status === 401) { redirectToLogin(); return; }
-                if (!res.ok) throw new Error(await res.text().catch(()=> "Şirket eklenemedi"));
+              if (res.status === 401) { redirectToLogin(); return; }
+              if (!res.ok) {
+                const txt = await res.text().catch(()=>"");
+                throw new Error("Ekleme başarısız: " + (txt || res.status));
+              }
 
-                clearNewForm();
-                state.page = 1;
-                await loadCompaniesFromApi();
-                toastInfo("Şirket başarıyla eklendi.", "success");
-            } catch (e) {
-                console.error(e);
-                alert(e.message || "Beklenmeyen bir hata oluştu.");
+              clearNewForm();
+              await loadCompaniesFromApi();       // listeyi tazele
+              toastInfo("Şirket başarıyla eklendi.", "success");
+            } catch (err) {
+              console.error(err);
+              alert(err.message || "Beklenmeyen bir hata oluştu.");
             }
-        });
+          });
 
-        el("cmp-add-cancel").addEventListener("click", (e) => {
-            e.preventDefault();
+          // Tek cancel listener (çifti vardı, onu kaldır)
+          document.getElementById("cmp-add-cancel").addEventListener("click", () => {
             clearNewForm();
-        });
+          });
+        }
+
+        
+
+        // clearNewForm'u form’a göre güncelle
+        function clearNewForm(){
+          addForm.reset();
+          el("cmp-new-name").focus();
+          ["cmp-new-name","cmp-new-code","cmp-new-city","cmp-new-type"]
+            .forEach(i => el(i).classList.remove("is-invalid","is-valid"));
+        }
+
 
           // Düzenle – Kaydet / Vazgeç
-          el("cmp-update").addEventListener("click", ()=>{
-            if(!editingId) return;
-            const idx = state.rows.findIndex(x=>x.id===editingId);
-            Object.assign(state.rows[idx], {
-              name: el("cmp-edit-name").value.trim(),
-              code: el("cmp-edit-code").value.trim().toUpperCase(),
-              city: el("cmp-edit-city").value.trim(),
-              type: el("cmp-edit-type").value
+                  el("cmp-update").addEventListener("click", async ()=>{
+          if(!editingId || !editingCode) return;
+
+          const name = el("cmp-edit-name").value.trim();
+          const code = el("cmp-edit-code").value.trim().toUpperCase();
+          const city = el("cmp-edit-city").value.trim();
+          const type = el("cmp-edit-type").value;
+
+          if(!name || !code || !city || !type){
+            alert("Lütfen tüm alanları doldurun.");
+            return;
+          }
+
+          try{
+            const fd = new FormData();
+            fd.append("Name", name);
+            fd.append("StockCode", code);
+            fd.append("City", city);
+            fd.append("Type", type);
+
+            const res = await fetch(`/companies/${encodeURIComponent(editingCode)}`, {
+              method: "PUT",
+              body: fd,
+              credentials: "same-origin",
+              headers: { "X-Requested-With": "XMLHttpRequest" }
             });
-            clearEdit(); render();
-          });
-          el("cmp-cancel").addEventListener("click", ()=>{ clearEdit(); });
+            if (res.status === 401) { redirectToLogin(); return; }
+            if (!res.ok) throw new Error(await res.text().catch(()=> "Güncelleme başarısız"));
+
+            clearEdit();
+            await loadCompaniesFromApi();
+            toastInfo("Şirket güncellendi.", "success");
+          }catch(e){
+            console.error(e);
+            alert(e.message || "Hata");
+          }
+        });
+
 
           // === API’den veri çek ===
           async function loadCompaniesFromApi(){
@@ -588,5 +660,40 @@
           // İlk yüklemede veriyi getir
           loadCompaniesFromApi();
         })();
+    </script>
+
+    <script>
+        // Tüm Döviz Kurları — partial yükleyici
+        async function loadRates(dateStr) {
+          const d = (dateStr && dateStr.trim()) || new Date().toISOString().slice(0,10);
+          const resp = await fetch(`/dashboard/rates-by-date?date=${d}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          document.getElementById('ratesBlock').innerHTML = await resp.text();
+        }
+
+        // Sayfa açılışında bugünkü veriyi getir
+        document.addEventListener('DOMContentLoaded', () => {
+          loadRates(new Date().toISOString().slice(0,10));
+        });
+
+        // Filtrele butonuna tıklanınca (partial her yenilendiğinde de çalışır)
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('#btnRatesFilter');
+          if (!btn) return;
+          const root = document.getElementById('ratesBlock');
+          const dateInput = root.querySelector('#ratesDate');
+          loadRates(dateInput ? dateInput.value : '');
+        });
+
+        // Tarih alanında Enter'a basınca da filtrele (opsiyonel)
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter') return;
+          const input = document.querySelector('#ratesBlock #ratesDate');
+          if (input && document.activeElement === input) {
+            e.preventDefault();
+            loadRates(input.value);
+          }
+        });
     </script>
 }

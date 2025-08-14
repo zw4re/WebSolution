@@ -36,22 +36,24 @@ namespace Admin.Controllers
         {
             try
             {
-                var apiUrl = _configuration["URL:DatabaseService"];
+                var loginUrl = _configuration["URL:DatabaseServiceLogin"]; // sadece login için
                 var client = _httpClientFactory.CreateClient();
+
                 var payload = new { username, password };
                 var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(apiUrl, content);
+                var response = await client.PostAsync(loginUrl, content);
 
                 if (response.IsSuccessStatusCode)
                 {
                     // Cookie Authentication başlat
                     var claims = new[]
                     {
-                        new Claim(ClaimTypes.Name, username)
-                    };
+                new Claim(ClaimTypes.Name, username)
+            };
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var principal = new ClaimsPrincipal(identity);
                     await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
                     return Redirect("/dashboard");
                 }
                 else
@@ -62,9 +64,10 @@ namespace Admin.Controllers
             }
             catch
             {
-                ViewBag.Error = "Kullanıcı adı veya şifre hatalı";
+                ViewBag.Error = "Sunucuya bağlanırken hata oluştu";
                 return View();
             }
         }
+
     }
 }

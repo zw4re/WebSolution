@@ -121,5 +121,38 @@ namespace DatabaseService.Controllers
             var count = await _db.Companies.CountAsync();
             return Ok(count);
         }
+        //düzeltilmiş parse işlemi
+        [HttpPost("upsert")]
+        public async Task<IActionResult> Upsert([FromBody] Company input)
+        {
+            Console.WriteLine($"[UPSERT] body alındı: StockCode='{input?.StockCode}', Name='{input?.KapMemberTitle}'");
+
+            if (input == null || string.IsNullOrWhiteSpace(input.StockCode))
+            {
+                Console.WriteLine("[UPSERT] Geçersiz istek");
+                return BadRequest("Geçersiz istek.");
+            }
+
+            var existing = await _db.Companies.FindAsync(input.StockCode);
+            if (existing == null)
+            {
+                _db.Companies.Add(input);
+                var affected = await _db.SaveChangesAsync();
+                Console.WriteLine($"[UPSERT] CREATED '{input.StockCode}' (affected={affected})");
+                return Ok(new { status = "created", stockCode = input.StockCode, affected });
+            }
+
+            existing.MkkMemberOid = input.MkkMemberOid;
+            existing.KapMemberTitle = input.KapMemberTitle;
+            existing.RelatedMemberTitle = input.RelatedMemberTitle;
+            existing.CityName = input.CityName;
+            existing.RelatedMemberOid = input.RelatedMemberOid;
+            existing.KapMemberType = input.KapMemberType;
+
+            var affectedUpdate = await _db.SaveChangesAsync();
+            Console.WriteLine($"[UPSERT] UPDATED '{input.StockCode}' (affected={affectedUpdate})");
+            return Ok(new { status = "updated", stockCode = input.StockCode, affected = affectedUpdate });
+        }
+
     }
 }

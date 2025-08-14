@@ -142,5 +142,19 @@ namespace DatabaseService.Controllers
 
             return Ok(latestRates);
         }
+
+        // GET: Belirli tarihe ait döviz kurları
+        [HttpGet("by-date")]
+        public async Task<IActionResult> GetByDate([FromQuery] DateTime date)
+        {
+            var list = await _context.TcmbExchangeRates
+                .Where(x => x.Date == date.Date)
+                .OrderBy(x => x.CurrencyCode)
+                .ThenBy(x => x.Type) // Buy/Sell sırası
+                .ToListAsync();
+
+            return Ok(list);
+        }
+
     }
 }

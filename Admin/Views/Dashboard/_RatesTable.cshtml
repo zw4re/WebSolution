@@ -1,0 +1,50 @@
+﻿@model Entities.Presentation.DashboardViewModel
+
+<div class="card shadow-sm">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <strong id="tcmbSection">Tüm Döviz Kurları</strong>
+        <div class="d-flex gap-2">
+            <input id="ratesDate" type="date" class="form-control form-control-sm"
+                   value="@(Model.RatesDate?.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd"))" />
+            <button id="btnRatesFilter" class="btn btn-primary btn-sm">
+                <i class="bi bi-funnel"></i> Filtrele
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width:140px;">Tarih</th>
+                    <th>Döviz Türü</th>
+                    <th style="width:100px;">Tip</th>
+                    <th style="width:140px;">Değer</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ExchangeRates?.Any() == true)
+                {
+                    foreach (var r in Model.ExchangeRates)
+                    {
+                        <tr>
+                            <td>@r.Date.ToString("dd.MM.yyyy")</td>
+                            <td>@r.CurrencyCode</td>
+                            <td>@r.Type</td>
+                            <td>@r.Value</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            Kayıt bulunamadı.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+

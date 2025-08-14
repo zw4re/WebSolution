@@ -30,66 +30,95 @@ namespace Admin.Controllers
             _redisService = redisService;
         }
 
+
         [HttpGet("/dashboard")]
         public async Task<IActionResult> Index()
         {
-            var apiBase = _configuration["URL:DatabaseService"];
+            var apiBase = (_configuration["URL:DatabaseService"] ?? "").TrimEnd('/');
             var client = _httpClientFactory.CreateClient();
 
-            // Şirket sayısını çek
+            // Şirket sayısı
             int companyCount = 0;
-            var companyCountUrl = apiBase.Replace("/api/login", "/api/companies/count");
-            var companyCountResponse = await client.GetAsync(companyCountUrl);
+            var companyCountResponse = await client.GetAsync($"{apiBase}/companies/count");
             if (companyCountResponse.IsSuccessStatusCode)
             {
                 var countString = await companyCountResponse.Content.ReadAsStringAsync();
                 int.TryParse(countString, out companyCount);
             }
 
-            // Son job zamanı
+            // Son job zamanı 
             DateTime? lastJobTime = null;
             using (var connection = JobStorage.Current.GetConnection())
             {
                 var jobList = connection.GetRecurringJobs();
-
-                if (jobList != null && jobList.Count > 0)
-                {
-                    var lastExecutedJob = jobList
-                        .Where(j => j.LastExecution.HasValue)
-                        .OrderByDescending(j => j.LastExecution)
-                        .FirstOrDefault();
-
-                    lastJobTime = lastExecutedJob?.LastExecution;
-                }
+                var lastExecutedJob = jobList?
+                    .Where(j => j.LastExecution.HasValue)
+                    .OrderByDescending(j => j.LastExecution)
+                    .FirstOrDefault();
+                lastJobTime = lastExecutedJob?.LastExecution;
             }
 
-            // En güncel 5 döviz kuru verisi
+            // En güncel döviz kurları
             List<TcmbExchangeRate> rates = new();
-            var latestRatesUrl = apiBase.Replace("/api/login", "/api/tcmb/latest");
-            var latestRatesResponse = await client.GetAsync(latestRatesUrl);
+            var latestRatesResponse = await client.GetAsync($"{apiBase}/tcmb/latest");
             if (latestRatesResponse.IsSuccessStatusCode)
             {
                 var json = await latestRatesResponse.Content.ReadAsStringAsync();
-                rates = JsonSerializer.Deserialize<List<TcmbExchangeRate>>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                rates = JsonSerializer.Deserialize<List<TcmbExchangeRate>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
             }
 
-            // Redis üzerinden job listesi al
-            var jobs = _redisService.GetRecurringJobs(); 
+            // Redis üzerinden job listesi
+            var jobs = _redisService.GetRecurringJobs();
 
-            // ViewModel oluştur
             var viewModel = new DashboardViewModel
             {
                 CompanyCount = companyCount,
                 LastJobTime = lastJobTime?.ToString("dd.MM.yyyy HH:mm") ?? "Henüz çalışmadı",
                 ExchangeRates = rates,
-                RecurringJobs = jobs 
+                RecurringJobs = jobs
             };
 
             return View(viewModel);
-
         }
+        //BÜTÜN DÖVİZ KURLARI
+
+        [HttpGet("/dashboard/rates-by-date")]
+        public async Task<IActionResult> RatesByDate([FromQuery] DateTime? date)
+        {
+            var apiBase = _configuration["URL:DatabaseService"]?.TrimEnd('/'); // ← appsettings'teki .../api kalır
+            var client = _httpClientFactory.CreateClient();
+
+            var d = (date ?? DateTime.UtcNow.Date).ToString("yyyy-MM-dd");
+            var url = $"{apiBase}/tcmb/by-date?date={d}"; // ← ekstra /api EKLEME! (appsettings zaten /api ile bitiyor)
+
+            List<TcmbExchangeRate> list = new();
+            try
+            {
+                var resp = await client.GetAsync(url);
+                if (resp.IsSuccessStatusCode)
+                {
+                    list = await resp.Content.ReadFromJsonAsync<List<TcmbExchangeRate>>() ?? new();
+                }
+                else
+                {
+                    ViewBag.RatesError = $"TCMB servisi {(int)resp.StatusCode} döndürdü.";
+                }
+            }
+            catch (Exception ex)
+            {
+                ViewBag.RatesError = "TCMB servisine ulaşılamadı: " + ex.Message;
+            }
+
+            var vm = new DashboardViewModel
+            {
+                RatesDate = DateTime.Parse(d),
+                ExchangeRates = list.OrderBy(x => x.CurrencyCode).ThenBy(x => x.Type).ToList()
+            };
+
+            return PartialView("_RatesTable", vm);
+        }
+
+
     }
 }

@@ -1,5 +1,7 @@
 using Hangfire;
 using Admin.Services;
+using CommonMessaging; 
+using RabbitMQ.Client;
 
 namespace Admin
 {
@@ -35,8 +37,19 @@ namespace Admin
 
             builder.Services.AddSingleton<RedisService>();
 
+            //  RabbitMQ MessagingOptions ayarlarını appsettings.jsondan çeker
+            builder.Services.Configure<MessagingOptions>(builder.Configuration.GetSection("RabbitMQ"));
+
+            //  RabbitConnectionı singleton olarak ekle
+            builder.Services.AddSingleton<RabbitConnection>(sp =>
+            {
+                var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<MessagingOptions>>().Value;
+                return new RabbitConnection(opt);
+            });
+
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
 
             var app = builder.Build();
 
@@ -51,7 +64,6 @@ namespace Admin
 
             app.UseRouting();
 
-            // Session mutlaka burada
             app.UseSession();
 
             app.UseAuthentication();
@@ -59,7 +71,7 @@ namespace Admin
 
             app.UseHangfireDashboard("/hangfire");
 
-            // Endpoint mapping (UseEndpoints yerine bu yolu kullanalım)
+            // Endpoint 
             app.MapControllers();
             app.MapControllerRoute(
                 name: "default",
